@@ -33,6 +33,9 @@ bmesh.ops.delete(bm, geom=kill, context="FACES")
 bm.verts.ensure_lookup_table(); bm.verts.index_update()
 src = {v.index: s for v, s in zip(bm.verts, [None] * len(bm.verts))}  # srcs no longer needed after the cut
 relax(bm, body, iters=10, strength=0.45, min_off=lambda p: 0.015)
+front = [v for v in bm.verts if abs(v.co.x) < 0.1 and v.co.y < -0.05]
+bust_v = min(front, key=lambda v: v.co.y)  # most forward front vertex = the bust point
+drape_front(bm, bust_v.co.z, bust_v.co.y)
 channel_of = {f.index: 0 for f in bm.faces}
 for loop in boundary_loops(bm):
     bm.verts.ensure_lookup_table()
@@ -51,7 +54,10 @@ for loop in boundary_loops(bm):
     def flare(co):
         return 0.012 if co.z > z_neck - 0.03 else 0.008 if co.z < z_hem + 0.06 else 0.0
 
-    ext, hem = extend_opening(bm, body, loop, length=length, flare=flare, hem=0.005)
+    def hem_of(co):  # lips on the collar and hem; the open placket edges stay clean
+        return 0.005 if (co.z > z_neck - 0.03 or co.z < z_hem + 0.06) else 0.0
+
+    ext, hem = extend_opening(bm, body, loop, length=length, flare=flare, hem=hem_of)
     for f in ext + hem:
         channel_of.setdefault(f.index, 0)
     for f in hem:

@@ -31,7 +31,7 @@ export function activeTargets(pack: BodyPack, d: Descriptor): Array<[number, num
   for (const s of pack.meta.sliders) {
     const v = Math.max(-1, Math.min(1, d.sliders?.[s.id] ?? 0));
     if (v === 0) continue;
-    for (const t of v > 0 ? s.pos : s.neg) out.push([t, Math.abs(v)]);
+    for (const [t, w] of v > 0 ? s.pos : s.neg) out.push([t, Math.abs(v) * w]);
   }
   const style = d.style ?? 1;
   if (style !== 0) for (const [t, w] of pack.meta.style) out.push([t, w * style]);

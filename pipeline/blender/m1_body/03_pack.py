@@ -80,10 +80,9 @@ def body(m, slider_vals=None, style=1.0):
     for s in sliders.SLIDERS:
         val = (slider_vals or {}).get(s["id"], 0.0)
         side = "pos" if val > 0 else "neg"
-        for t in s[side]:
-            for e in sliders.expand(t):
-                if e in tix and val != 0:
-                    stack.append((e, abs(val)))
+        for e, w in sliders.entries(s[side]):
+            if e in tix and val != 0:
+                stack.append((e, abs(val) * w))
     for t, w in sliders.STYLE_TARGETS.items():
         for e in sliders.expand(t):
             if e in tix:
@@ -459,7 +458,7 @@ for gname, gval in (("female", 0.0), ("male", 1.0)):
 slider_defs = []
 for s in sliders.SLIDERS:
     slider_defs.append({"id": s["id"], "group": s["group"],
-                        **{side: [tix[e] for t in s[side] for e in sliders.expand(t) if e in tix] for side in ("neg", "pos")}})
+                        **{side: [[tix[e], w] for e, w in sliders.entries(s[side]) if e in tix] for side in ("neg", "pos")}})
 meta = {
     "version": 1, "space": "gltf Y-up, faces +Z, metres", "proxy": "MakeHuman female1605 (CC0)",
     "counts": {"src": Vs, "body": V, "eyes": E, "render": Vr, "tris": len(indices) // 3, "targets": T},

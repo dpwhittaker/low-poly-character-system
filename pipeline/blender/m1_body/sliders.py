@@ -58,6 +58,14 @@ SLIDERS = [
     {"id": "armLength", "group": "body", "neg": ["arms/measure-upperarm-length-decr", "arms/measure-lowerarm-length-decr"],
      "pos": ["arms/measure-upperarm-length-incr", "arms/measure-lowerarm-length-incr"]},
     {"id": "neckLength", "group": "body", "neg": ["neck/measure-neck-height-decr"], "pos": ["neck/measure-neck-height-incr"]},
+    {"id": "belly", "group": "body", "neg": ["stomach/stomach-pregnant-decr"], "pos": ["stomach/stomach-pregnant-incr"]},
+    # body fat beyond MakeHuman's max weight (R35: maxweight is only +10–13 % waist). The
+    # creator's Weight slider runs past 1 into this composite.
+    {"id": "fat", "group": "body", "neg": [], "pos": [
+        ("stomach/stomach-pregnant-incr", 0.6), ("arms/{s}-upperarm-fat-incr", 1.0), ("arms/{s}-lowerarm-fat-incr", 0.7),
+        ("legs/{s}-upperleg-fat-incr", 1.0), ("legs/{s}-lowerleg-fat-incr", 0.6), ("buttocks/buttocks-volume-incr", 0.6),
+        ("torso/torso-scale-horiz-incr", 0.5), ("torso/torso-scale-depth-incr", 0.6), ("hip/hip-scale-horiz-incr", 0.4),
+        ("neck/neck-double-incr", 0.6), ("cheek/{s}-cheek-volume-incr", 0.4)]},
     {"id": "headSize", "group": "body", "neg": ["head/head-scale-horiz-decr", "head/head-scale-vert-decr", "head/head-scale-depth-decr"],
      "pos": ["head/head-scale-horiz-incr", "head/head-scale-vert-incr", "head/head-scale-depth-incr"]},
     # face
@@ -99,6 +107,15 @@ def expand(name):
     return [name.format(s=s) for s in ("l", "r")] if "{s}" in name else [name]
 
 
+def entries(side_list):
+    """Slider side entries → [(target, weight)]: plain names weigh 1, tuples carry a weight."""
+    out = []
+    for e in side_list:
+        name, w = (e, 1.0) if isinstance(e, str) else e
+        out += [(x, w) for x in expand(name)]
+    return out
+
+
 def macro_target_names():
     """Every macro corner target file (relative to data/targets, without .target.gz)."""
     ages = ("baby", "child", "young", "old")
@@ -129,8 +146,7 @@ def slider_target_names():
     names = []
     for s in SLIDERS:
         for side in ("neg", "pos"):
-            for t in s[side]:
-                for e in expand(t):
-                    if e not in names:
-                        names.append(e)
+            for e, _ in entries(s[side]):
+                if e not in names:
+                    names.append(e)
     return names

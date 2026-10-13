@@ -69,12 +69,14 @@ const ui = {
 function descriptor(pack: BodyPack, l: Look): Descriptor {
   const child = l.years < 13;
   const age = ageMacro(l.years, l.gender, pack.meta.ageCurve);
+  // Weight runs past MakeHuman's max (R35): above 1 it drives the body-fat composite slider
+  const fat = Math.max(0, (l.weight - 1) / 0.6);
   return {
     macro: {
-      ...DEFAULT_MACRO, gender: l.gender, age, weight: l.weight, muscle: child ? 0.5 : l.muscle, height: l.height,
+      ...DEFAULT_MACRO, gender: l.gender, age, weight: Math.min(1, l.weight), muscle: child ? 0.5 : l.muscle, height: l.height,
       cupsize: child ? 0.5 : Math.min(0.65, Math.max(0.3, l.cup)), firmness: 0.5, race: l.race,
     },
-    sliders: l.sliders,
+    sliders: { ...l.sliders, fat: Math.min(1, fat + (l.sliders.fat ?? 0)) },
     style: 1,
   };
 }
@@ -237,7 +239,7 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
 
   function layout(): void {
     let x = 0;
-    const widths = chars.map((c) => Math.max(0.42, c.height * 0.36));
+    const widths = chars.map((c) => Math.max(0.42, c.height * 0.62)); // A-pose arm span ≈ 0.6 × height
     const total = widths.reduce((a, b) => a + b, 0);
     chars.forEach((c, i) => {
       const cx = -(x + widths[i] / 2 - total / 2); // camera looks down -Z: screen-right is world -X
@@ -249,7 +251,7 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
     if (ui.view === 'face') {
       const headY = chars.reduce((a, c) => a + c.headY, 0) / chars.length;
       camera.target = new Vector3(0, headY + 0.09 * (tallest / 1.65), 0);
-      camera.radius = Math.max(0.8 * (tallest / 1.65), total * 1.1) / portrait;
+      camera.radius = (chars.length > 1 ? Math.max(0.8 * (tallest / 1.65), total * 1.1) : 0.8 * (tallest / 1.65)) / portrait;
     } else {
       camera.target = new Vector3(0, tallest * 0.52, 0);
       const fitH = tallest * 1.25 / (2 * Math.tan(camera.fov / 2));
@@ -341,11 +343,11 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
       },
       Body: () => [
         range('Feminine ↔ masculine', 0, 1, 0.01, () => L.gender, (v) => (L.gender = v)),
-        range('Weight', 0, 1, 0.01, () => L.weight, (v) => (L.weight = v)),
+        range('Weight', 0, 1.6, 0.01, () => L.weight, (v) => (L.weight = v)),
         range('Muscle', 0, 1, 0.01, () => L.muscle, (v) => (L.muscle = v)),
         range('Height', 0, 1, 0.01, () => L.height, (v) => (L.height = v)),
         range('Bust', 0.3, 0.65, 0.01, () => L.cup, (v) => (L.cup = v)),
-        ...pack.meta.sliders.filter((s) => s.group === 'body')
+        ...pack.meta.sliders.filter((s) => s.group === 'body' && s.id !== 'fat')
           .map((s) => range(s.id, -1, 1, 0.01, () => L.sliders[s.id] ?? 0, (v) => (L.sliders[s.id] = v))),
       ],
       Face: () => pack.meta.sliders.filter((s) => s.group === 'face')

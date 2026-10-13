@@ -17,8 +17,8 @@ export interface BoneDef {
 export interface SliderDef {
   id: string;
   group: 'body' | 'face';
-  neg: number[]; // target indices applied at |value| when value < 0
-  pos: number[];
+  neg: Array<[number, number]>; // [target index, weight at |value| = 1] when value < 0
+  pos: Array<[number, number]>;
 }
 
 export interface BodyMeta {

@@ -265,6 +265,20 @@ def clear_item(bm, P2, T2, min_off, iters=12, ignore=None, cap=0.015):
     return bad
 
 
+def drape_front(bm, bust_z, bust_front_y, below=0.25, slope=0.12):
+    """Fabric hangs from the bust instead of following the body under it: front vertices
+    below the bust are pushed forward to at least a plane falling back gently from the bust
+    front (Blender front = −y). The binding turns this into larger offsets under the bust, so
+    every body's garment drapes the same way."""
+    for v in bm.verts:
+        dz = bust_z - v.co.z
+        if 0 < dz < below and v.co.y < 0.02:
+            limit = bust_front_y + slope * dz
+            w = min(1.0, dz / 0.03) * max(0.0, 1 - (abs(v.co.x) - 0.09) / 0.06) if abs(v.co.x) > 0.09 else min(1.0, dz / 0.03)
+            if v.co.y > limit:
+                v.co.y = v.co.y + (limit - v.co.y) * w
+
+
 def boundary_loops(bm):
     """Closed boundary edge loops as ordered vertex lists."""
     edges = [e for e in bm.edges if e.is_boundary]
@@ -325,15 +339,18 @@ def extend_opening(bm, body, loop, length, flare, hem=0.004, steps=1):  # noqa: 
             j = (i + 1) % len(cur)
             ext_faces.append(bm.faces.new([cur[i], cur[j], new[j], new[i]]))
         cur = new
-    if hem > 0:
+    if callable(hem) or hem > 0:
         inner_ring = []
         for v in cur:
+            h = hem(v.co) if callable(hem) else hem
             q, ti, _ = body.nearest(np.array(v.co))
             n = body.frame(ti, body.bary(ti, q))[2]
             off = float((np.array(v.co) - q) @ n)
-            inner_ring.append(bm.verts.new(Vector(np.array(v.co) - n * min(hem, max(0.0, off - 0.002)))))
+            inner_ring.append(bm.verts.new(Vector(np.array(v.co) - n * min(h, max(0.0, off - 0.002)))))
         for i in range(len(cur)):
             j = (i + 1) % len(cur)
+            if (inner_ring[i].co - cur[i].co).length < 1e-5 and (inner_ring[j].co - cur[j].co).length < 1e-5:
+                continue  # no lip on this stretch (e.g. a placket edge)
             hem_faces.append(bm.faces.new([cur[i], inner_ring[i], inner_ring[j], cur[j]]))
     bm.verts.index_update(); bm.faces.index_update()
     return ext_faces, hem_faces
