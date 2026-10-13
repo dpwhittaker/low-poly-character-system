@@ -14,7 +14,9 @@ import { createBodyMaterial, setPalette, setFlatShading, PALETTE_SIZE } from '..
 import { loadBodyPack, type BodyPack } from '../character/bodyPack';
 import { bakeBody, boneHeads, type Descriptor } from '../character/assemble';
 import { ageMacro, DEFAULT_MACRO } from '../character/macro';
-import { buildCharacter, loadRestSkeleton, updateCharacter, type CharacterParts } from '../character/babylonCharacter';
+import { buildCharacter, loadRestSkeleton, setOutfit, updateCharacter, type CharacterParts } from '../character/babylonCharacter';
+import { loadItemPack, itemPaletteBase, FIRST_ITEM_SLOT, HAIR_SLOT, BROW_SLOT, type ItemPack } from '../character/items';
+import { loadClips, playClip, type Playing } from '../character/clips';
 
 // M1 creator preview (SPEC T22/T27, PLAN §4.5): the real assembler path — CPU morph bake +
 // skeleton fit — behind phone-first sliders. URL state for screenshots:
@@ -24,12 +26,14 @@ import { buildCharacter, loadRestSkeleton, updateCharacter, type CharacterParts 
 const BASE = import.meta.env.BASE_URL + 'm1/';
 const SKIN_TONES = ['F2D3BE', 'E8BB9C', 'D9A07E', 'C68863', 'A86B4A', '8A5236', '6B3E28', '4C2B1D'];
 const EYE_COLORS = ['4E7A5E', '5B4030', '3F6A9A', '7A6A3A', '2E2420'];
+const HAIR_COLORS = ['5A3825', '2A1D16', '8A5A33', '7A3B22', 'C9A066', 'B9B4AC'];
 
 interface Look {
   years: number; gender: number; weight: number; muscle: number; height: number; cup: number;
   race: { african: number; asian: number; caucasian: number };
   sliders: Record<string, number>;
-  skin: number; eyes: number;
+  skin: number; eyes: number; hair: number;
+  wear: string[];
 }
 
 const params = new URLSearchParams(location.search);
@@ -42,7 +46,8 @@ function lookFromParams(): Look {
     years: num('years', 16), gender: num('gender', 0.1), weight: num('weight', 0.5), muscle: num('muscle', 0.5),
     height: num('height', 0.5), cup: num('cup', 0.5),
     race: { african: num('af', 0.33), asian: num('as', 0.33), caucasian: num('ca', 0.34) },
-    sliders, skin: num('skin', 2), eyes: num('eyes', 0),
+    sliders, skin: num('skin', 2), eyes: num('eyes', 0), hair: num('hair', 0),
+    wear: params.has('wear') ? (params.get('wear') || '').split(',').filter(Boolean) : ['*'],
   };
 }
 
@@ -56,6 +61,8 @@ const ui = {
   lineup: params.get('lineup') as null | 'ages' | 'genders' | 'faces',
   debug: params.get('debug') as null | 'bands',
   wire: params.get('wire') === '1',
+  clip: params.get('clip'),
+  frame: params.has('frame') ? Number(params.get('frame')) : null,
 };
 
 /** Content rules (PLAN §5.7): no sex-dimorphism body sliders under 13; capped cup range. */
@@ -74,12 +81,22 @@ function descriptor(pack: BodyPack, l: Look): Descriptor {
 
 const srgbToLin = (hex: string) => [0, 2, 4].map((i) => Math.pow(parseInt(hex.slice(i, i + 2), 16) / 255, 2.2));
 
-function palette(pack: BodyPack, l: Look): Float32Array {
+function palette(pack: BodyPack, l: Look, worn: ItemPack[] = []): Float32Array {
   const p = new Float32Array(PALETTE_SIZE * 3);
+  let g = 0;
+  for (const it of worn) {
+    const base = itemPaletteBase(it, g);
+    if (base >= FIRST_ITEM_SLOT) g++;
+    it.meta.colors.forEach((hex, c) => { if (base + c < PALETTE_SIZE) p.set(srgbToLin(hex), (base + c) * 3); });
+  }
   pack.meta.paletteSrgb.forEach((hex, i) => p.set(srgbToLin(hex), i * 3));
   const skin = srgbToLin(SKIN_TONES[l.skin] ?? SKIN_TONES[2]);
   p.set(skin, 0);
-  p.set([skin[0] * 0.78, skin[1] * 0.42, skin[2] * 0.45], 3 * pack.meta.regions.indexOf('lips'));
+  // lips: a soft tint of the skin (the reference's lips are subtle, not painted)
+  p.set([skin[0] * 0.86, skin[1] * 0.58, skin[2] * 0.6], 3 * pack.meta.regions.indexOf('lips'));
+  const hair = srgbToLin(HAIR_COLORS[l.hair] ?? HAIR_COLORS[0]);
+  p.set(hair, HAIR_SLOT * 3);
+  p.set(hair.map((x) => x * 0.6), BROW_SLOT * 3); // brows a shade darker than the hair
   p.set(srgbToLin(EYE_COLORS[l.eyes] ?? EYE_COLORS[0]), 3 * pack.meta.regions.indexOf('iris'));
   return p;
 }
@@ -95,7 +112,7 @@ function bandPalette(): Float32Array {
   return p;
 }
 
-interface Char { look: Look; parts: CharacterParts; mat: ShaderMaterial; height: number; headY: number; disc: Mesh }
+interface Char { look: Look; parts: CharacterParts; mat: ShaderMaterial; height: number; headY: number; disc: Mesh; playing?: Playing | null }
 
 export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
   const engine = new Engine(canvas, true, { preserveDrawingBuffer: true, stencil: false, antialias: true });
@@ -118,12 +135,25 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
   shadowMat.disableLighting = true; shadowMat.emissiveColor = new Color3(1, 1, 1);
 
   const [pack, rest] = await Promise.all([loadBodyPack(BASE), loadRestSkeleton(`${BASE}skeleton.glb`)]);
+  const clips = await loadClips(scene, `${BASE}anim/clips.glb`).catch((e) => { console.warn('clips', e); return null; });
+  const manifest = await fetch(`${BASE}items/index.json`).then((r) => (r.ok ? r.json() : { items: [] }))
+    .catch(() => ({ items: [] })) as { items: Array<{ id: string; slot: string }> };
+  const catalog = new Map<string, ItemPack>();
+  await Promise.all(manifest.items.map(async (m) => catalog.set(m.id, await loadItemPack(BASE, m.id))));
+  /** One item per slot; '*' = the first item of every slot (the default outfit). */
+  const worn = (l: Look): ItemPack[] => {
+    const first = new Map<string, string>();
+    for (const m of manifest.items) if (!first.has(m.slot)) first.set(m.slot, m.id);
+    if (first.has('hair') && catalog.has('hair_ponytail')) first.set('hair', 'hair_ponytail');
+    const ids = l.wear.includes('*') ? [...first.values()] : l.wear;
+    return ids.map((id) => catalog.get(id)).filter((x): x is ItemPack => !!x);
+  };
 
   const chars: Char[] = [];
   function addChar(look: Look): Char {
     const baked = bakeBody(pack, descriptor(pack, look));
     const mat = createBodyMaterial(`body${chars.length}`, scene, STUDIO);
-    const parts = buildCharacter(scene, pack, rest, baked, mat, `char${chars.length}`);
+    const parts = buildCharacter(scene, pack, rest, baked, mat, `char${chars.length}`, ui.debug ? [] : worn(look));
     const disc = CreateDisc(`shadow${chars.length}`, { radius: 0.4, tessellation: 32 }, scene);
     disc.rotation.x = Math.PI / 2; disc.position.y = 0.002; disc.material = shadowMat;
     const c: Char = { look, parts, mat, height: 0, headY: 0, disc };
@@ -137,7 +167,7 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
     const t0 = performance.now();
     updateCharacter(c.parts, pack, rest, baked);
     lastBakeMs = performance.now() - t0;
-    setPalette(c.mat, ui.debug === 'bands' ? bandPalette() : palette(pack, c.look));
+    setPalette(c.mat, ui.debug === 'bands' ? bandPalette() : palette(pack, c.look, c.parts.items));
     setFlatShading(c.mat, ui.flat);
     const heads = boneHeads(pack, baked.joints, baked.groundLift);
     const hi = pack.meta.bones.findIndex((b) => b.name === 'head');
@@ -168,7 +198,14 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
   }
 
   function applyPose(c: Char): void {
+    c.playing?.dispose();
+    c.playing = null;
     c.parts.skeleton.returnToRest();
+    if (ui.clip && clips) {
+      c.playing = playClip(clips, ui.clip, c.parts);
+      if (c.playing && ui.frame !== null) { c.playing.group.goToFrame(ui.frame); c.playing.group.pause(); }
+      return;
+    }
     if (ui.pose === 'rest') return;
     const b = (n: string) => c.parts.bones.get(n)!;
     const m = c.parts.mesh;
@@ -321,7 +358,42 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
             for (const k of ['african', 'asian', 'caucasian'] as const) L.race[k] /= sum;
           }));
         return [swatches(SKIN_TONES, () => L.skin, (i) => (L.skin = i)),
+          swatches(HAIR_COLORS, () => L.hair, (i) => (L.hair = i)),
           swatches(EYE_COLORS, () => L.eyes, (i) => (L.eyes = i)), ...races];
+      },
+      Outfit: () => {
+        const slots = new Map<string, string[]>();
+        for (const m of manifest.items) slots.set(m.slot, [...(slots.get(m.slot) ?? []), m.id]);
+        const rows: HTMLElement[] = [];
+        if (L.wear.includes('*')) L.wear = worn(L).map((it) => it.meta.id);
+        for (const [slot, ids] of slots) {
+          const row = document.createElement('div'); row.className = 'swatches';
+          for (const id of ['none', ...ids]) {
+            const b = document.createElement('button');
+            b.textContent = id === 'none' ? `no ${slot}` : catalog.get(id)!.meta.name;
+            const on = () => (id === 'none' ? !ids.some((x) => L.wear.includes(x)) : L.wear.includes(id));
+            b.classList.toggle('on', on());
+            b.onclick = () => {
+              L.wear = L.wear.filter((x) => !ids.includes(x));
+              if (id !== 'none') L.wear.push(id);
+              setOutfit(c.parts, pack, rest, bakeBody(pack, descriptor(pack, L)), worn(L));
+              show('Outfit'); rebake();
+            };
+            row.appendChild(b);
+          }
+          rows.push(row);
+        }
+        return rows;
+      },
+      Motion: () => {
+        const row = document.createElement('div'); row.className = 'swatches';
+        for (const name of ['none', ...(clips?.groups.map((g) => g.name) ?? [])]) {
+          const b = document.createElement('button'); b.textContent = name;
+          b.classList.toggle('on', (ui.clip ?? 'none') === name);
+          b.onclick = () => { ui.clip = name === 'none' ? null : name; ui.frame = null; chars.forEach(applyPose); show('Motion'); };
+          row.appendChild(b);
+        }
+        return [row];
       },
       View: () => {
         const row = document.createElement('div'); row.className = 'swatches';
@@ -356,5 +428,6 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
   engine.runRenderLoop(() => scene.render());
   window.addEventListener('resize', () => { engine.resize(); layout(); });
   await scene.whenReadyAsync();
+  (window as unknown as { __scene: Scene }).__scene = scene; // screenshot tools may move the camera
   (window as unknown as { __ready: boolean }).__ready = true;
 }

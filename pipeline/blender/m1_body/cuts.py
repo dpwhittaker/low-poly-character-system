@@ -21,7 +21,7 @@ CUTS = [
     {"id": "neck", "part": "neck", "a": "joint-neck", "b": "joint-head", "t": 0.12, "tilt": 0.35},
     {"id": "underBust", "part": "torso", "z": ("bust", -0.065)},
     {"id": "waist", "part": "torso", "z": ("joint-spine-3", 0.0)},
-    {"id": "highHip", "part": "torso", "z": ("joint-spine-4", -0.01)},
+    {"id": "highHip", "part": "torso", "z": ("joint-spine-4", 0.035)},
     {"id": "lowHip", "part": "torso", "z": ("joint-{s}-upper-leg", 0.055)},
     {"id": "hotPants", "part": "leg", "a": "joint-{s}-upper-leg", "b": "joint-{s}-knee", "t": 0.2},
     {"id": "midThigh", "part": "leg", "a": "joint-{s}-upper-leg", "b": "joint-{s}-knee", "t": 0.55},
