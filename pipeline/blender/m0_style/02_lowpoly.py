@@ -97,7 +97,8 @@ def set_all_regions(ob, rid):
         d.value = rid
 
 
-def group_weight_per_face(ob, group_name):
+def group_weight_per_face(ob, group_name, reduce="mean"):
+    """Per-face vertex-group weight: the corners' mean, or their min (reduce="min")."""
     g = ob.vertex_groups.get(group_name)
     if g is None:
         return [0.0] * len(ob.data.polygons)
@@ -106,6 +107,8 @@ def group_weight_per_face(ob, group_name):
         for e in v.groups:
             if e.group == g.index:
                 vw[v.index] = e.weight
+    if reduce == "min":
+        return [min(vw[i] for i in p.vertices) for p in ob.data.polygons]
     return [sum(vw[i] for i in p.vertices) / len(p.vertices) for p in ob.data.polygons]
 
 
@@ -201,13 +204,18 @@ for v in body.data.vertices:
     dec.add([v.index], w, "REPLACE")
 decimate_to(body, BUDGET["body"], weight_group="dec_w", factor=0.25)
 lips_w = group_weight_per_face(body, "lips")
+# every corner must be on the lip: after decimation, triangles with one corner on bare skin
+# (weight 0) still averaged > 0.6 and drew pink wings past the mouth corners and spikes up
+# toward the nose (user review of S1 smooth, 2026-10-13)
+lips_min = group_weight_per_face(body, "lips", reduce="min")
 nails_w = group_weight_per_face(body, "fingernails")
+nails_min = group_weight_per_face(body, "fingernails", reduce="min")
 a = region_attr(body)
 for i, p in enumerate(body.data.polygons):
     rid = REGION["skin"]
-    if lips_w[i] > 0.6:
+    if lips_w[i] > 0.6 and lips_min[i] > 0.05:
         rid = REGION["lips"]
-    elif nails_w[i] > 0.5:
+    elif nails_w[i] > 0.5 and nails_min[i] > 0.05:
         rid = REGION["nails"]
     a.data[i].value = rid
 # lash line: MakeHuman lids are closed skin hugging the eyeball (no boundary holes), so

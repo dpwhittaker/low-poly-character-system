@@ -1,15 +1,16 @@
 # PLAN — Low-Poly Character System
 
 Research and plan for a customizable character system for web 3D games
-(Babylon.js 8 + Havok + Vite + TypeScript), built for a sandbox MMO life-sim.
+(Babylon.js 9 + Havok + Vite + TypeScript), built for a sandbox MMO life-sim.
 
-> **Status:** plan v1.3, 2026-10-12. The user's answers are folded in (§12): the audience is
+> **Status:** plan v1.4, 2026-10-13. M0 is built: path C passes every scaled crowd gate
+> (§8.2b), and the user picked style **S1 with smooth normals** (§5.5). The user's answers are folded in (§12): the audience is
 > teen girls building families, so every age is in scope, including infants with a small
 > option set; the UI is phone-first; the camera ranges from close city scenes to open
-> countryside; performance gates are measured on this machine (its UHD 770 iGPU plus CPU
-> throttling). Babylon is upgraded to 9.30, and
-> Blender 5.2.2 + the official MCP server are installed and verified. No character code is
-> built yet. This file holds the reasoning,
+> countryside; performance gates are measured on this machine (its UHD 770 iGPU, and its
+> CPU unthrottled × a tier factor). Babylon is upgraded to 9.30, and
+> Blender 5.2.2 + the official MCP server are installed and verified. Production character
+> code starts in M1. This file holds the reasoning,
 > research and sources; `SPEC.md` holds the decisions in compressed form and is the file
 > that gets updated as work proceeds. Where the two disagree, `SPEC.md` wins and this file
 > is stale.
@@ -61,7 +62,7 @@ Research and plan for a customizable character system for web 3D games
    stress-pose × body-extreme × outfit tests. Each test must be *proven able to fail*, and
    a human visual gate sits on top.
 11. **Thin vertical slice first.** One body, a handful of items and the full pipeline end
-    to end, measured on this machine's budget-class iGPU with CPU throttling (§8.5),
+    to end, measured on this machine's budget-class iGPU and unthrottled CPU × tier factor (§8.5),
     before scaling content. **The UI is phone-first** (§4.5).
 
 ---
@@ -73,7 +74,7 @@ Research and plan for a customizable character system for web 3D games
 | G1 | Deep body + face customization via sliders | slider count; each slider visibly changes silhouette/face at 3 m; all combinations valid | ≥ 30 body + ≥ 30 face sliders plus macro sliders (sex, weight, muscle, age, height); every combination passes §7 tests |
 | G2 | Hundreds of clothing pieces + accessories, mix-and-match | catalog entries; compatibility | ≥ 300 catalog entries from ~120 meshes (variants are data, §9); any item combination either fits or is auto-resolved by declared rules |
 | G3 | Recolor, up to 3 colors per item | channels per item | 3 independent channels per item (R primary, G accent, B detail), plus skin, hair and eye colors |
-| G4 | 100 unique characters on screen: budget laptops, midrange tablets **and phones** (phone-first) | `Plaza-100` (city) and `Meadow-100` (countryside) benchmark scenes, fixed camera paths | ≥ 30 fps on an Intel UHD 620-class laptop and a Mali-G57 / Adreno 6xx / Apple A13-class tablet or midrange phone; ≥ 60 fps desktop. Character system ≤ 40 % of frame time. Measured on this machine's UHD 770 iGPU plus CPU throttling, scaled to those tiers (§8.5) |
+| G4 | 100 unique characters on screen: budget laptops, midrange tablets **and phones** (phone-first) | `Plaza-100` (city) and `Meadow-100` (countryside) benchmark scenes, fixed camera paths | ≥ 30 fps on an Intel UHD 620-class laptop and a Mali-G57 / Adreno 6xx / Apple A13-class tablet or midrange phone; ≥ 60 fps desktop. Character system ≤ 40 % of frame time. Measured on this machine's UHD 770 iGPU and unthrottled CPU, scaled to those tiers (§8.5) |
 | G5 | Small game size | bytes over the wire | core (body, morphs, skeleton, animations, shaders) ≤ 3 MB compressed; average item ≤ 25 KB incl. LODs |
 | G6 | Quality bar | user sign-off on rendered 3D, every milestone | approved style frame; approved contact sheets; zero visible poke-through in the stress-pose suite |
 | G7 | MMO-ready | descriptor size; assembly time | descriptor ≤ 200 B; assembly ≤ 30 ms per character in a Web Worker on a budget laptop; results cached |
@@ -379,7 +380,8 @@ one preview character uses live morph targets.
     `cross(dFdx(p), dFdy(p))`;
   - use smooth normals on a low-poly mesh.
 
-  The style frame at M0 (§11) chooses between them.
+  The style frame at M0 (§11) chooses between them. **Chosen: smooth normals** (user,
+  2026-10-13, §5.5), so the derivative-normal path stays only as a viewer toggle.
 - **One lighting definition** (`lighting.ts`) used by the game, the creator and every
   screenshot harness. World Forge's face-shadow bug came from harness lighting drifting
   from game lighting.
@@ -496,6 +498,13 @@ LOD0 body triangles are in the head.
   lighting rig, next to the approved reference. The user sees a contact sheet plus a live
   page to orbit on a phone. S1 is the cheapest by far (no textures, no UV2, no atlas
   bleed), so it wins any tie.
+
+  **Picked: S1 with smooth normals** (user, 2026-10-13, after the contact sheet and live
+  page). Features are geometry with per-face vertex colors, and the base character ships no
+  textures. The one correction was to the lips: four decimated triangles still counted as
+  lip and drew pink wings past the mouth corners and spikes toward the nose. A face now
+  takes a feature color only if **every** corner lies in that feature's vertex group, not
+  just the corners' mean (SPEC V16, B4).
 
 ### 5.6 Ages and families
 
@@ -1207,7 +1216,7 @@ Every milestone ends at three gates:
 
 | M | Deliverable | Gate to pass |
 |---|---|---|
-| **M0** Foundations | Style frames: S1 all-vertex-color / S2 painted face / S3 texture detail × flat / smooth shading (§5.5), on one test character, rendered in Babylon with the shared lighting rig, plus a live phone page. `Plaza-100` + `Meadow-100` benchmarks with **placeholder** characters at the planned budgets, gated on this machine (UHD 770 iGPU + CPU throttling, §8.5). Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
+| **M0** Foundations | Style frames: S1 all-vertex-color / S2 painted face / S3 texture detail × flat / smooth shading (§5.5), on one test character, rendered in Babylon with the shared lighting rig, plus a live phone page. `Plaza-100` + `Meadow-100` benchmarks with **placeholder** characters at the planned budgets, gated on this machine (UHD 770 iGPU + unthrottled CPU × tier factor, §8.5). Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | ✅ User picked **S1 smooth** (2026-10-13). User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
 | **M1** Bake-off + base body | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders, **plus a child and a toddler from the same topology** (§5.6). Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
 | **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. The shared descriptor validator (§5.7). Family inheritance (§5.6). **Phone-first creator UI** (§4.5): sliders, item pick, 3 colors | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters. The validator rejects every known-bad descriptor fixture |
 | **M3** Garment pipeline | Build step: binding, weight inheritance, hide measurement, LODs, validator, clip-test harness, contact sheets. 20 items across all slots and layers | Every item passes every §7 test on the full envelope × pose suite. The user approves the contact sheets |
@@ -1233,14 +1242,18 @@ Every milestone ends at three gates:
 | 7 | Which Ryzen 7 is the mini PC? | **780M** | §8.1 (an optional sanity device) |
 | 8 | Infants? | **Fewer customizations, but several clothing options: onesie, diaper, and several baby versions of adult clothes** | §5.6, §5.7 (a diaper as the base layer) |
 | 9 | Phone-first? | **Yes** | §4.5 creator UI; §8.1 phones as first-class tiers |
-| 10 | A calibration device? | **No: focus on what can be measured on this machine** | §8.5: UHD 770 iGPU + CPU throttling, scaled with ≥ 30 % headroom |
+| 10 | A calibration device? | **No: focus on what can be measured on this machine** | §8.5: UHD 770 iGPU + unthrottled CPU × tier factor (CDP throttling was found invalid), scaled with ≥ 30 % headroom |
 | 11 | Will the user do any Blender work? | **No: every asset is agent-authored** | §3.4 weighting unchanged; there is no human artist pass in the §12 risks, so M1 sign-off and reference data carry the quality risk |
 | 12 | Feet under shoes? | **"Clip feet when possible"** | §7.3 D1 applies to shoes; foot bands in §6.2; the World Forge rule is superseded (§2) |
 
-### Still open (none block M0)
+### Answered by the style frames (2026-10-13)
 
-1. **Faces.** Painted features with bone expressions, or more geometric faces? (§5.5;
-   decided by the M0 style frames.)
+- **Faces: geometric**, with S1 all vertex color and smooth normals (§5.5). Expressions stay
+  on jaw and face bones (§5.5).
+
+### Still open
+
+None block M1.
 
 ### Risks
 
