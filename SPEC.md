@@ -24,7 +24,8 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim, audien
 - one body topology (unisex), one skeleton, one character material; near tier = 1 draw/char. 0 morph targets at runtime (baked at assembly).
 - ⊥ runtime geometric heuristics: no push-out, no auto-cut, no inflation. fit, hiding & weights come from build-time data.
 - recolor: R=primary G=accent B=detail (user's scheme), independent per item.
-- carried user rules: covered body ⊥ drawn, cuts clean (authored bands); shoes worn OVER foot, foot kept; hands can grip (finger bones).
+- user rules: covered body ⊥ drawn, cuts clean (authored bands); hands can grip (finger bones). feet (revised 2026-10-12): foot bands hidden inside shoes when measured covered ("clip feet when possible"); shoe fails to build → foot stays. ⊥ World Forge rule "foot always kept inside shoes".
+- all assets agent-authored (user 2026-10-12); no human artist pass ∴ M1 sign-off + reference data carry quality.
 - quality gate: ⊥ catalog / UI / scale work before user signs off rendered 3D body + faces + garments in motion (M1, §T.5).
 - one lighting definition shared by game, creator & every screenshot harness.
 - art target = 16-char faceted low-poly reference `~/projects/character-generator/public/low-poly-character-reference.png` (approved 2026-09-06, re-confirmed 2026-10-12). 2D AI image ∴ 3D must be proven against it, ⊥ assumed.
@@ -93,6 +94,7 @@ T14|.|M2 add-on: shared descriptor validator (§5.7 rules) + family inheritance 
 T15|.|M0 add-on: `Meadow-100` countryside bench + scaled-gate harness on this machine (UHD 770 iGPU GPU timer × tier ratio, CDP CPU throttling, ≥30% headroom)|PLAN §8.5
 T16|x|fold answers round 2 (780M, infants, phone-first, measure-on-this-machine) into PLAN v1.2 + §C; revises perf-floor §C rule|-
 T17|.|M2 add-on: phone-first creator UI (bottom sheet, foldable resize, recolored thumbnails)|PLAN §4.5
+T18|x|answers round 3: agent-authored assets; clip feet when measured covered (revises §C feet rule; foot bands added to cut lines)|PLAN §6.2 §7.3
 
 ## §B BUGS
 

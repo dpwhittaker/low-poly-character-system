@@ -3,7 +3,7 @@
 Research and plan for a customizable character system for web 3D games
 (Babylon.js 8 + Havok + Vite + TypeScript), built for a sandbox MMO life-sim.
 
-> **Status:** plan v1.2, 2026-10-12. The user's answers are folded in (§12): the audience is
+> **Status:** plan v1.3, 2026-10-12. The user's answers are folded in (§12): the audience is
 > teen girls building families, so every age is in scope, including infants with a small
 > option set; the UI is phone-first; the camera ranges from close city scenes to open
 > countryside; performance gates are measured on this machine (its UHD 770 iGPU plus CPU
@@ -102,8 +102,11 @@ assets are carried over.
 
 - *"rendering the full base character under the clothing … with your own cuts. Let's stop
   that practice completely."* So covered body is not drawn, and the cuts must be clean.
-- Shoes are worn **over** the foot, and the foot is not removed to save triangles (World
-  Forge `0c2aa3b`, "as instructed").
+- ~~Shoes are worn over the foot, and the foot is not removed (World Forge `0c2aa3b`).~~
+  **Superseded 2026-10-12: "clip feet when possible".** Foot bands are hidden inside shoes
+  whenever the shoe measurably covers them (§7.3 D1). The old rule likely came from World
+  Forge's failure modes: claimed, unmeasured hiding and a "legless player" when a garment
+  failed to build. Measured, failure-safe hiding removes both.
 - Recolor: *"color 1 as primary, color 2 as accent, and color 3 as detail"*, and each
   item's colors are independent.
 - Hands must be able to grip things, so there are finger bones and the hands are bound
@@ -577,7 +580,7 @@ other players:
 | 3 regular | shirts, jeans, trousers, skirts, dresses | layer-3 offset |
 | 4 outer | jackets, hoodies, vests, cardigans | layer-4 offset |
 | 5 over | coats, aprons, belts, scarves | layer-5 offset; belts are rigid-island bands |
-| feet | shoes, boots | worn **over** the foot (the foot is kept, §2); its own offset rule |
+| feet | shoes, boots, sandals | worn over the foot; **foot bands are hidden when the shoe measurably covers them** (user, 2026-10-12: "clip feet when possible"). Open shoes such as sandals hide only what they cover, e.g. the sole. Its own offset rule |
 | head | hair, hats, glasses, masks | hair classes + hat modes (§7.3 D8) |
 | attach | earrings, watch, bag, backpack, held props | rigid, single-bone, merged into the character mesh |
 
@@ -596,7 +599,9 @@ authored so their openings sit just past one of these lines, overlapping the kep
 - **Arm:** shoulder cap, short sleeve (mid upper arm), elbow, three-quarter, wrist.
 - **Torso:** under-bust (crop), natural waist, high hip, low hip.
 - **Leg:** hot-pants, mid-thigh, knee, mid-calf, ankle.
-- **Foot:** ankle boot, mid-calf boot, knee boot.
+- **Foot:** sole, toes, instep, heel, ankle. These let closed shoes hide the whole foot and
+  sandals or flats hide only what they cover.
+- **Boot shaft:** ankle boot, mid-calf boot, knee boot.
 
 The band between two loops is the unit of hiding. A garment hides a band only if it covers
 that band **end to end**, in every stress pose and on every envelope body. This is
@@ -687,8 +692,9 @@ At runtime, hiding drops whole bands of items that *actually built*. This remove
 body-through-garment clipping outright, because what isn't drawn can't poke through, and
 it cuts triangles. It cannot produce saw-tooth edges, because band edges are authored
 loops. It cannot produce missing limbs, because a band is never hidden on a claim, only on
-a measurement. The exception, per the user's rule, is the foot inside a shoe: shoes hide
-nothing and rely on D2–D4.
+a measurement. Shoes follow the same rule: a closed shoe hides the foot bands it covers
+(user, 2026-10-12: "clip feet when possible"). That also removes the heel poke-through
+that World Forge never solved. If a shoe fails to build, the foot stays.
 
 **D2 — The layer-shell grammar.**
 Layer *k* has a standard offset envelope [dₖ₋₁, dₖ] from the body surface.
@@ -1143,21 +1149,19 @@ Every milestone ends at three gates:
 | 8 | Infants? | **Fewer customizations, but several clothing options: onesie, diaper, and several baby versions of adult clothes** | §5.6, §5.7 (a diaper as the base layer) |
 | 9 | Phone-first? | **Yes** | §4.5 creator UI; §8.1 phones as first-class tiers |
 | 10 | A calibration device? | **No: focus on what can be measured on this machine** | §8.5: UHD 770 iGPU + CPU throttling, scaled with ≥ 30 % headroom |
+| 11 | Will the user do any Blender work? | **No: every asset is agent-authored** | §3.4 weighting unchanged; there is no human artist pass in the §12 risks, so M1 sign-off and reference data carry the quality risk |
+| 12 | Feet under shoes? | **"Clip feet when possible"** | §7.3 D1 applies to shoes; foot bands in §6.2; the World Forge rule is superseded (§2) |
 
 ### Still open (none block M0)
 
 1. **Faces.** Painted features with bone expressions, or more geometric faces? (§5.5;
    decided by the M0 style frames.)
-2. **Feet under shoes.** Confirm the World Forge rule carries over: the foot is always
-   kept inside shoes.
-3. **Hands-on time.** Will the user do any manual Blender work, or should every asset be
-   agent-authored? This changes the bake-off weighting.
 
 ### Risks
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Agent-authored organic shapes still look "programmer-made" | high, given §2 | Reference-data projection (§5.3), M1 sign-off before scale, blind A/B critique, an optional human artist pass on the base mesh only |
+| Agent-authored organic shapes still look "programmer-made" | high, given §2; every asset is agent-authored (user, 2026-10-12) | Reference-data projection (§5.3), the MCP iteration loop (§3.5), side-by-side renders against the approved reference, M1 sign-off before scale, blind A/B critique |
 | Surface-binding fit distorts loose garments at extreme sliders | medium | Robe proxy, rigid islands, multi-triangle smoothing for far-off vertices, the envelope corner suite (§7.5) |
 | JS animation evaluation for 100 skeletons exceeds the CPU budget on tablets | medium | Custom sampler, animation LOD, staggering, shared clip evaluation (§8) |
 | Hundreds of items make compatibility rules explode | medium | Layers give a total order; rules are per *class*, not per item pair (§7.3 D9) |
