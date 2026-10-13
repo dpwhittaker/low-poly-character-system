@@ -63,6 +63,8 @@ for loop in boundary_loops(bm):
     for f in hem:
         f.tag = True
 bm.faces.index_update()
+protect = [f for f in bm.faces if channel_of.get(f.index, 0) == 1 or f.tag]
+bm, channel_of = decimate_bm(bm, 540, channel_of, protect)  # PLAN §8.3 budget
 # clearance last, so collar, cuffs and hems are checked too: body, then the tee (D2 between layers)
 # hem lips are tagged (f.tag): they fold toward the body by design, clearance ignores them
 still = clear_body(bm, body, bands, 0.012, iters=30, ignore=True)

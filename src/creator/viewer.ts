@@ -27,6 +27,9 @@ const BASE = import.meta.env.BASE_URL + 'm1/';
 const SKIN_TONES = ['F2D3BE', 'E8BB9C', 'D9A07E', 'C68863', 'A86B4A', '8A5236', '6B3E28', '4C2B1D'];
 const EYE_COLORS = ['4E7A5E', '5B4030', '3F6A9A', '7A6A3A', '2E2420'];
 const HAIR_COLORS = ['5A3825', '2A1D16', '8A5A33', '7A3B22', 'C9A066', 'B9B4AC'];
+/** Curated garment palette (recolor channels R primary / G accent / B detail, PLAN §6.4). */
+const CLOTH_COLORS = ['F2F0EC', 'D8D2C4', '9C9C9C', '2B2B2B', '2E3D5C', '3F72B8', '7FB2D9', '2F6B5A', '6E8B3D',
+  'C8962E', 'E2B53C', 'D9663B', 'B23A3A', 'D98AA6', '7B4E9C', '5A3825'];
 
 interface Look {
   years: number; gender: number; weight: number; muscle: number; height: number; cup: number;
@@ -34,6 +37,7 @@ interface Look {
   sliders: Record<string, number>;
   skin: number; eyes: number; hair: number;
   wear: string[];
+  colors: Record<string, string[]>; // per item id: channel overrides (sRGB hex)
 }
 
 const params = new URLSearchParams(location.search);
@@ -48,6 +52,7 @@ function lookFromParams(): Look {
     race: { african: num('af', 0.33), asian: num('as', 0.33), caucasian: num('ca', 0.34) },
     sliders, skin: num('skin', 2), eyes: num('eyes', 0), hair: num('hair', 0),
     wear: params.has('wear') ? (params.get('wear') || '').split(',').filter(Boolean) : ['*'],
+    colors: {},
   };
 }
 
@@ -89,13 +94,17 @@ function palette(pack: BodyPack, l: Look, worn: ItemPack[] = []): Float32Array {
   for (const it of worn) {
     const base = itemPaletteBase(it, g);
     if (base >= FIRST_ITEM_SLOT) g++;
-    it.meta.colors.forEach((hex, c) => { if (base + c < PALETTE_SIZE) p.set(srgbToLin(hex), (base + c) * 3); });
+    it.meta.colors.forEach((hex, c) => {
+      const h = l.colors[it.meta.id]?.[c] ?? hex;
+      if (base + c < PALETTE_SIZE) p.set(srgbToLin(h), (base + c) * 3);
+    });
   }
   pack.meta.paletteSrgb.forEach((hex, i) => p.set(srgbToLin(hex), i * 3));
   const skin = srgbToLin(SKIN_TONES[l.skin] ?? SKIN_TONES[2]);
   p.set(skin, 0);
   // lips: a soft tint of the skin (the reference's lips are subtle, not painted)
-  p.set([skin[0] * 0.86, skin[1] * 0.58, skin[2] * 0.6], 3 * pack.meta.regions.indexOf('lips'));
+  const tint = 1 - 0.55 * l.gender; // masculine lips read painted at full tint
+  p.set([skin[0] * (1 - 0.14 * tint), skin[1] * (1 - 0.42 * tint), skin[2] * (1 - 0.4 * tint)], 3 * pack.meta.regions.indexOf('lips'));
   const hair = srgbToLin(HAIR_COLORS[l.hair] ?? HAIR_COLORS[0]);
   p.set(hair, HAIR_SLOT * 3);
   p.set(hair.map((x) => x * 0.6), BROW_SLOT * 3); // brows a shade darker than the hair
@@ -258,14 +267,22 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
     const portrait = Math.min(1, engine.getAspectRatio(camera) / 0.75);
     if (ui.view === 'face') {
       const headY = chars.reduce((a, c) => a + c.headY, 0) / chars.length;
+      camera.targetScreenOffset.y = 0;
       camera.target = new Vector3(0, headY + 0.06 * (tallest / 1.65), 0);
       const fitW = (total * 1.05) / (2 * Math.tan(camera.fov / 2) * engine.getAspectRatio(camera));
       camera.radius = chars.length > 1 ? Math.max(0.8 * (tallest / 1.65), fitW) : (0.8 * (tallest / 1.65)) / portrait;
     } else {
+      // phone-first: fit the figure into the part of the canvas the bottom sheet leaves free
+      const sheetEl = document.getElementById('sheet');
+      const wide = window.innerWidth >= 900; // the sheet is a side panel there
+      const covered = sheetEl && !wide ? Math.min(0.5, sheetEl.offsetHeight / window.innerHeight) : 0;
+      const free = 1 - covered;
       camera.target = new Vector3(0, tallest * 0.52, 0);
-      const fitH = tallest * 1.25 / (2 * Math.tan(camera.fov / 2));
-      const fitW = total * 1.1 / (2 * Math.tan(camera.fov / 2) * engine.getAspectRatio(camera));
+      const t = 2 * Math.tan(camera.fov / 2);
+      const fitH = (tallest * 1.18) / (t * free);
+      const fitW = (total * 1.1) / (t * engine.getAspectRatio(camera));
       camera.radius = Math.max(fitH, fitW, 1.2);
+      camera.targetScreenOffset.y = (camera.radius * t * covered) / 2; // lift the figure above the sheet
     }
     camera.alpha = Math.PI / 2 + (ui.yaw * Math.PI) / 180;
     camera.beta = Math.PI / 2.08;
@@ -277,7 +294,7 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
   info.className = 'info';
   function setInfo(): void {
     const c = chars[0];
-    info.textContent = `${pack.meta.counts.tris.toLocaleString()} tris · ${pack.meta.bones.length} bones · ` +
+    info.textContent = `${(c.parts.mesh.getTotalIndices() / 3).toLocaleString()} tris · ${pack.meta.bones.length} bones · ` +
       `${c.height.toFixed(2)} m · bake ${lastBakeMs.toFixed(1)} ms`;
   }
   if (ui.show && !ui.lineup) buildSheet();
@@ -396,6 +413,22 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
         }
         return rows;
       },
+      Colors: () => {
+        const rows: HTMLElement[] = [];
+        for (const it of c.parts.items) {
+          if (it.meta.slot === 'hair' || it.meta.slot === 'brows') continue;
+          const head = document.createElement('div'); head.className = 'info'; head.textContent = it.meta.name;
+          rows.push(head);
+          it.meta.colors.forEach((def, ch) => {
+            const cur = () => CLOTH_COLORS.indexOf((L.colors[it.meta.id]?.[ch] ?? def).toUpperCase());
+            rows.push(swatches(CLOTH_COLORS, cur, (i) => {
+              const arr = L.colors[it.meta.id] ?? [...it.meta.colors];
+              arr[ch] = CLOTH_COLORS[i]; L.colors[it.meta.id] = arr;
+            }));
+          });
+        }
+        return rows;
+      },
       Motion: () => {
         const row = document.createElement('div'); row.className = 'swatches';
         for (const name of ['none', ...(clips?.groups.map((g) => g.name) ?? [])]) {
@@ -426,6 +459,7 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
     function show(name: string): void {
       tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.textContent === name));
       body.replaceChildren(...pages[name]());
+      requestAnimationFrame(layout); // the sheet's height changed: refit the figure above it
     }
     for (const name of Object.keys(pages)) {
       const b = document.createElement('button'); b.textContent = name; b.onclick = () => show(name);

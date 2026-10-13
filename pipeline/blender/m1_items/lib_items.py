@@ -420,15 +420,21 @@ def measure_hides(body, P, tris, candidates, reach=0.12, min_clear=0.0):
         if len(tri_ids) == 0:
             continue
         samples = []
-        for ti in tri_ids:  # each corner, nudged 15% toward its triangle's centre
-            ids = body.tris[ti]; c = body.P[ids].mean(0)
+        for ti in tri_ids:  # each corner, nudged 15% toward its triangle's centre, cast along
+            ids = body.tris[ti]; c = body.P[ids].mean(0)  # the FACE normal (vertex normals in
+            a, b, cc = body.P[ids]                          # creases point into arm/torso gaps)
+            fn = np.cross(b - a, cc - a); fn /= max(np.linalg.norm(fn), 1e-12)
             for v in ids:
-                samples.append((body.P[v] * 0.85 + c * 0.15, body.N[v]))
+                mid = fn + body.N[v]; mid /= max(np.linalg.norm(mid), 1e-12)
+                samples.append((body.P[v] * 0.85 + c * 0.15, (fn, body.N[v], mid)))
         for ti in tri_ids:
             ids = body.tris[ti]
             c = body.P[ids].mean(0); nn = body.N[ids].mean(0); nn /= np.linalg.norm(nn)
-            samples.append((c, nn))
-        ok = all(bvh.ray_cast(Vector(p + n * 0.0005), Vector(n), reach)[0] is not None for p, n in samples)
+            samples.append((c, (nn,)))
+        # covered = a ray along the face normal OR the vertex normal hits the item: in creases
+        # one of them points into a body gap (armpit: vertex normal; crotch: face normal)
+        ok = all(any(bvh.ray_cast(Vector(p + n * 0.0005), Vector(n), reach)[0] is not None for n in ns)
+                 for p, ns in samples)
         if ok:
             hidden.append(int(band))
     return hidden
@@ -619,3 +625,46 @@ def mesh_arrays(ob):
         for k in range(1, len(vs) - 1):
             tris.append([vs[0], vs[k], vs[k + 1]])
     return P, tris
+
+
+def decimate_bm(bm, target, channel_of, protect_faces=()):
+    """Collapse-decimate an authored item to its triangle budget (PLAN §8.3). Faces in
+    `protect_faces` (collars, cuffs, hems: thin strips the decimator would eat first) and
+    the openings keep their vertices; channel ids and hem tags survive as face attributes.
+    Returns (bm, channel_of) of the decimated mesh."""
+    me = bpy.data.meshes.new("_dec")
+    bm.faces.index_update()
+    tags = [f.tag for f in bm.faces]
+    chans = [channel_of.get(f.index, 0) for f in bm.faces]
+    prot = {f.index for f in protect_faces}
+    keepv = {v.index for f in bm.faces if f.index in prot for v in f.verts} | \
+            {v.index for v in bm.verts if v.is_boundary}
+    bm.to_mesh(me)
+    a = me.attributes.new("channel", "INT", "FACE"); a.data.foreach_set("value", chans)
+    h = me.attributes.new("hem", "BOOLEAN", "FACE"); h.data.foreach_set("value", tags)
+    ob = bpy.data.objects.new("_dec", me); bpy.context.scene.collection.objects.link(ob)
+    vg = ob.vertex_groups.new(name="free")
+    vg.add([v.index for v in me.vertices if v.index not in keepv], 1.0, "REPLACE")
+    tris = sum(len(p.vertices) - 2 for p in me.polygons)
+    if tris > target:
+        mod = ob.modifiers.new("dec", "DECIMATE")
+        mod.decimate_type = "COLLAPSE"; mod.ratio = target / tris
+        mod.use_symmetry = True; mod.symmetry_axis = "X"; mod.use_collapse_triangulate = True
+        mod.vertex_group = "free"; mod.vertex_group_factor = 50.0  # weight 0 (protected) = very costly
+        with bpy.context.temp_override(object=ob, active_object=ob, selected_objects=[ob]):
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+    out = bmesh.new(); out.from_mesh(ob.data)
+    # decimation can leave slits (2-edge boundaries) and tiny holes: weld, then fill holes of
+    # ≤ 4 edges (real openings are far larger)
+    bmesh.ops.remove_doubles(out, verts=out.verts, dist=1e-5)
+    bmesh.ops.holes_fill(out, edges=[e for e in out.edges if e.is_boundary], sides=4)
+    cl = out.faces.layers.int.get("channel")
+    hl = out.faces.layers.bool.get("hem")
+    out.faces.index_update()
+    ch2 = {}
+    for f in out.faces:
+        ch2[f.index] = f[cl] if cl else 0
+        f.tag = bool(f[hl]) if hl else False
+    bpy.data.objects.remove(ob, do_unlink=True)
+    bpy.data.meshes.remove(me)
+    return out, ch2

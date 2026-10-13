@@ -24,6 +24,7 @@ bm, src = shell(body, bands, offset)
 relax(bm, body, iters=8, strength=0.45, min_off=lambda p: 0.004)
 still = clear_body(bm, body, bands, 0.004)
 channel_of = {f.index: 0 for f in bm.faces}
+ext_hem_faces = set()
 for loop in boundary_loops(bm):
     cid = loop_cut_id(body, loop, src)
     if cid == "neck":
@@ -38,7 +39,13 @@ for loop in boundary_loops(bm):
         raise RuntimeError(f"unexpected opening on {cid}")
     for f in ext + hem:
         channel_of.setdefault(f.index, 0)
+        ext_hem_faces.add(f.index)
+    for f in hem:
+        f.tag = True
 bm.faces.index_update()
+protect = [f for f in bm.faces if f.index in ext_hem_faces]
+bm, channel_of = decimate_bm(bm, 460, channel_of, protect)  # PLAN §8.3 budget
+still = clear_body(bm, body, bands, 0.004, iters=20, ignore=True)
 P, tris, srcf = bm_tris(bm)
 ch = [channel_of.get(f, 0) for f in srcf]
 hides = measure_hides(body, P, tris, sorted(bands))
