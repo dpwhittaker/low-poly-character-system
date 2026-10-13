@@ -1,0 +1,88 @@
+# low-poly-character-system — CLAUDE.md
+
+Complex 3D game: Babylon.js + Havok physics + Vite + TypeScript.
+
+## Workflow rule: commit + push every turn
+
+Every turn that changes code, config, assets, or docs ends with a commit —
+and a push if this project has a remote. Don't wait to be asked. One commit
+per logical change; run the build/tests first and fix what fails before
+committing. Restart the project's systemd unit when the running app needs the
+change to take effect. Skip only when the turn produced no working-tree changes.
+
+**Commit explicit paths, never `-A`.** Several Claude sessions can share this
+checkout (one per terminal tab), so `git add -A` sweeps up whatever a peer
+session has half-written. Name what you wrote:
+`git commit -m "…" -- src/foo.ts src/foo.test.ts`.
+
+## Workflow rule: git worktrees
+
+Parallel work goes in a worktree, not in this checkout — two agents editing
+one tree is the "peer swept my files" problem above, at feature scale. Claude
+Code's `isolation: "worktree"` drops a checkout at `~/projects/low-poly-character-system_<task>/`;
+give it a `.project-meta.json` naming `worktreeOf: "low-poly-character-system"` and its `branch`
+and the hub treats it as its own folder, with its own terminal sessions and
+its own dev server, so it never competes for this one's.
+
+**Never `rm -rf` a worktree** — this repo's `.git/worktrees/` keeps the
+registry entry and then refuses to reuse the path. Remove it with
+`git -C ~/projects/low-poly-character-system worktree remove --force <dir>`. A worktree checks
+out this project's `README.md` byte-for-byte; give its sentinel a `title` and
+`description` of its own so the hub can tell the two apart.
+
+## Workflow rule: the spec is the memory (SDD)
+
+`SPEC.md` at the root is this project's durable memory — goals (`§G`),
+constraints (`§C`), interfaces (`§I`), invariants (`§V`), tasks (`§T`) and
+bugs (`§B`), written compressed enough to reload on every request. It exists
+because your context window resets and the code does not: anything decided but
+not written down gets re-derived next session, differently. Read it before you
+change anything; update it in the same turn as the code, never "later". The
+loop is: read the spec → work against it → prove each `§V` you touched with a
+named test → **backprop** — every bug becomes a `§B` row and its class becomes
+a `§V` invariant, so the project stops re-making mistakes it has already made.
+
+The part that needs discipline is not writing the spec, it is retiring what a
+new requirement invalidated. `§V`/`§I` describe the present and get edited;
+`§T`/`§B` are logs and only get appended. Numbers are permanent addresses —
+never reused, even after retirement. Before appending an invariant, grep `§V`
+for its subject: a rule that changed gets **revised in place at its existing
+number**, tagged `(revised)` and carrying `⊥ <the old rule>` so nobody walks
+back into it — a rule whose concern is gone gets **deleted**, its retirement
+logged in the `§T` row that did the work.
+
+**Full protocol: `~/projects/claude-hub/SDD.md`** — section reference, the
+encoding and its symbol table, backprop, and the maintenance rules for keeping
+the spec true as the project grows.
+
+## claude-hub conventions
+
+- **Dev server** runs via `vite@low-poly-character-system.service` (systemd, `Restart=always`). Don't `npm run dev` manually — the unit owns the port.
+- **Reverse-proxied** at `/low-poly-character-system/` by claude-hub. `vite.config.ts` sets `base: '/low-poly-character-system/'` and `server.port: 5185` to match `.project-meta.json`.
+- **Entry point** is `src/main.ts` — builds the `Engine` + `Scene` against `#renderCanvas`. Imperative API; no React. Use HTML/CSS for HUD/menus over the canvas.
+- **Title and description** come from `README.md`: H1 = title, first paragraph = one-sentence description. The hub and the glasses app show both.
+
+## Stack
+
+- **`@babylonjs/core`** — engine, scene graph, cameras, lights, meshes, materials.
+- **`@babylonjs/havok`** — Havok physics (WASM). Wired via `PhysicsAggregate`. `vite.config.ts` excludes it from pre-bundling so the `.wasm` resolves.
+- **`@babylonjs/loaders`** — glTF/GLB import (`SceneLoader` / `ImportMeshAsync`).
+- **`@babylonjs/inspector`** — live scene debugger. Press `i` to toggle (lazy-imported, kept out of the prod bundle).
+
+## What to do first
+
+1. Ask the user what to build.
+2. Update `README.md` (H1, first paragraph).
+3. Edit `src/main.ts`. HMR through the proxy works.
+4. Assets: put `.glb`/`.gltf` in `public/`, load with `ImportMeshAsync('/low-poly-character-system/model.glb', scene)`.
+
+## Deploy (static hosting)
+
+`npm run build:pages` (GitHub Pages, base `/low-poly-character-system/`) or `npm run build:firebase` (Firebase Hosting, base `/`). Output in `dist/`. Ensure the Havok `.wasm` is served — it ships under `dist/assets/`.
+
+## Restarting the dev server
+
+```bash
+sudo systemctl restart vite@low-poly-character-system.service
+journalctl -u vite@low-poly-character-system.service -f
+```

@@ -1,0 +1,43 @@
+# SPEC
+
+Durable memory for this project — reload it at the start of every session.
+Format, encoding & the maintenance protocol (how a new requirement retires an
+old one): `~/projects/claude-hub/SDD.md`.
+
+## §G GOAL
+
+? one line — what this app must do. agree it w/ the user & rewrite before the
+first feature (§T.1). ⊥ leave this placeholder standing.
+
+## §C CONSTRAINTS
+
+- Vite 7 + Babylon.js 8 + Havok physics (WASM) + TypeScript 5.9. inspector on the `i` key.
+- dev server = `vite@low-poly-character-system.service` (systemd, `Restart=always`), owns port `5185`. ⊥ `npm run dev` by hand — 2nd process → `EADDRINUSE` or a stale instance the proxy hits instead.
+- reverse-proxied at `/low-poly-character-system/` by claude-hub. `base` in `vite.config.ts` ! = `.project-meta.json` `proxyPrefix`.
+- `server.allowedHosts` ! ⊇ `.ts.net`. hub proxies `changeOrigin: false` ∴ upstream sees CLIENT `Host`; Vite 7 403s unknown hosts.
+- `strictPort: true` — port comes from the sentinel, ⊥ drift to a free one silently.
+
+## §I INTERFACES
+
+- url: `GET /low-poly-character-system/` → the app, through claude-hub
+- `README.md` H1 → the project's title, ¶1 → its one-sentence description
+
+## §V INVARIANTS
+
+- V1: `base` in `vite.config.ts` = `/low-poly-character-system/` = sentinel `proxyPrefix`. any ≠ → assets 404 through the proxy while `127.0.0.1:5185` looks fine.
+- V2: `server.allowedHosts` ⊇ `['.ts.net', 'localhost']`. ⊥ a concrete FQDN (commits the machine's tailnet name). loopback passes while the tailnet URL 403s ∴ test through the REAL url.
+- V3: the dev server is `vite@low-poly-character-system.service`'s alone. ⊥ 2nd process on `5185`.
+- V4: `README.md` H1/¶1 = the project's title/description. ⊥ let them drift from §G.
+- V5: `optimizeDeps.exclude` ⊇ `['@babylonjs/havok']`. Havok is a WASM module; pre-bundling it breaks `.wasm` asset resolution.
+
+## §T TASKS
+
+id|status|task|cites
+---|---|---|---
+T1|.|agree §G w/ user; rewrite §G + `README.md` H1/¶1 to match|V4
+T2|.|first feature. add §I rows for surface it adds, §V for rules it must hold|-
+
+## §B BUGS
+
+id|date|cause|fix
+---|---|---|---

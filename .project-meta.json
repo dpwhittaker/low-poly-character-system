@@ -1,0 +1,12 @@
+{
+  "name": "low-poly-character-system",
+  "createdAt": "2026-10-13T02:38:34.762Z",
+  "template": "game-3d-complex",
+  "proxyTarget": "http://127.0.0.1:5185",
+  "proxyPrefix": "/low-poly-character-system",
+  "stripPrefix": false,
+  "openUrl": "/low-poly-character-system/",
+  "extraUnits": [
+    "vite@low-poly-character-system.service"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "low-poly-character-system",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --base=/low-poly-character-system/",
+    "build:firebase": "tsc -b && vite build --base=/",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^8.0.0",
+    "@babylonjs/loaders": "^8.0.0",
+    "@babylonjs/inspector": "^8.0.0",
+    "@babylonjs/havok": "^1.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vite": "^7.1.6"
+  }
+}
