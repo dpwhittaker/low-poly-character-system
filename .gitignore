@@ -7,3 +7,4 @@ dist
 .claude/worktrees/
 __pycache__/
 dist-bench
+pipeline/build/

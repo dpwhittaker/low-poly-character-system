@@ -4,6 +4,10 @@ import type { BaseTexture } from '@babylonjs/core/Materials/Textures/baseTexture
 import type { Scene } from '@babylonjs/core/scene';
 import { Vector3, Color3 } from '@babylonjs/core/Maths/math';
 import type { LightingRig } from './lighting';
+// Deep imports don't register shader includes for a ShaderMaterial; without these the
+// skinned effect fails with no GLSL log ("Error compiling effect", 2026-10-13).
+import '@babylonjs/core/Shaders/ShadersInclude/bonesDeclaration';
+import '@babylonjs/core/Shaders/ShadersInclude/bonesVertex';
 
 // Character surface shader (M0 prototype of the shared character material, PLAN §4.4).
 //   albedo = COLOR_0.rgb (palette color, linear) × texture, where the texture is
@@ -42,19 +46,11 @@ void main(void) {
   gl_Position = viewProjection * wp;
 }`;
 
-Effect.ShadersStore[`${NAME}FragmentShader`] = /* glsl */ `
-precision highp float;
-varying vec3 vWorldPos;
-varying vec3 vNormal;
-varying vec4 vColor;
-#ifdef HAS_UV
-varying vec2 vUV;
-uniform sampler2D tex;
-#endif
+// Shared by every character shader: the one lighting rig (lighting.ts) as uniforms, and
+// the facet/normal choice. `shade(albedo, ao, n, v)` returns display-encoded color.
+const LIGHTING_GLSL = /* glsl */ `
 uniform vec3 cameraPos;
 uniform float flatShading;
-uniform float texMode;
-uniform float texHwSrgb;
 uniform vec3 skyColor;
 uniform vec3 groundColor;
 uniform float ambient;
@@ -65,11 +61,38 @@ uniform vec3 fillColor;
 uniform vec3 rimDir;
 uniform vec3 rimColor;
 uniform float wrap;
+vec3 surfaceNormal(vec3 worldPos, vec3 smoothN, out vec3 v) {
+  vec3 n = flatShading > 0.5 ? normalize(cross(dFdx(worldPos), dFdy(worldPos))) : normalize(smoothN);
+  v = normalize(cameraPos - worldPos);
+  if (dot(n, v) < 0.0) n = -n;
+  return n;
+}
+vec3 shade(vec3 albedo, float ao, vec3 n, vec3 v) {
+  vec3 amb = mix(groundColor, skyColor, n.y * 0.5 + 0.5) * ambient;
+  float kd = max(0.0, (dot(n, -keyDir) + wrap) / (1.0 + wrap));
+  float fd = max(0.0, (dot(n, -fillDir) + wrap) / (1.0 + wrap));
+  float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0) * max(0.0, dot(n, -rimDir) * 0.5 + 0.5);
+  vec3 lit = albedo * (amb * mix(1.0, ao, 0.9) + keyColor * kd * mix(1.0, ao, 0.45) + fillColor * fd * ao)
+           + rimColor * rim * 0.22 * ao;
+  return pow(lit, vec3(1.0 / 2.2));
+}`;
+
+Effect.ShadersStore[`${NAME}FragmentShader`] = /* glsl */ `
+precision highp float;
+varying vec3 vWorldPos;
+varying vec3 vNormal;
+varying vec4 vColor;
+#ifdef HAS_UV
+varying vec2 vUV;
+uniform sampler2D tex;
+#endif
+uniform float texMode;
+uniform float texHwSrgb;
+${LIGHTING_GLSL}
 
 void main(void) {
-  vec3 n = flatShading > 0.5 ? normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos))) : normalize(vNormal);
-  vec3 v = normalize(cameraPos - vWorldPos);
-  if (dot(n, v) < 0.0) n = -n;
+  vec3 v;
+  vec3 n = surfaceNormal(vWorldPos, vNormal, v);
 
   vec3 albedo = vColor.rgb;
   float ao = vColor.a;
@@ -81,14 +104,7 @@ void main(void) {
   if (texMode > 1.5) albedo *= 2.0 * (texHwSrgb > 0.5 ? pow(t.r, 1.0 / 2.2) : t.r);
 #endif
 
-  vec3 amb = mix(groundColor, skyColor, n.y * 0.5 + 0.5) * ambient;
-  float kd = max(0.0, (dot(n, -keyDir) + wrap) / (1.0 + wrap));
-  float fd = max(0.0, (dot(n, -fillDir) + wrap) / (1.0 + wrap));
-  float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0) * max(0.0, dot(n, -rimDir) * 0.5 + 0.5);
-
-  vec3 lit = albedo * (amb * mix(1.0, ao, 0.9) + keyColor * kd * mix(1.0, ao, 0.45) + fillColor * fd * ao)
-           + rimColor * rim * 0.22 * ao;
-  gl_FragColor = vec4(pow(lit, vec3(1.0 / 2.2)), 1.0);
+  gl_FragColor = vec4(shade(albedo, ao, n, v), 1.0);
 }`;
 
 export type TexMode = 'none' | 'albedo' | 'detail';
@@ -103,12 +119,28 @@ export function createCharacterMaterial(name: string, scene: Scene, opts: Charac
   const hasTex = !!opts.texture && opts.texMode !== 'none';
   const mat = new ShaderMaterial(name, scene, { vertex: NAME, fragment: NAME }, {
     attributes: hasTex ? ['position', 'normal', 'color', 'uv'] : ['position', 'normal', 'color'],
-    uniforms: ['world', 'viewProjection', 'cameraPos', 'flatShading', 'texMode', 'skyColor', 'groundColor',
-      'ambient', 'keyDir', 'keyColor', 'fillDir', 'fillColor', 'rimDir', 'rimColor', 'wrap', 'texHwSrgb'],
+    uniforms: ['world', 'viewProjection', 'texMode', 'texHwSrgb', ...LIGHT_UNIFORMS],
     samplers: hasTex ? ['tex'] : [],
     defines: hasTex ? ['#define HAS_UV'] : [],
   });
-  const r = opts.rig;
+  applyRig(mat, opts.rig);
+  mat.setFloat('texMode', hasTex ? (opts.texMode === 'detail' ? 2 : 1) : 0);
+  if (hasTex && opts.texture) {
+    mat.setTexture('tex', opts.texture);
+    const hw = (opts.texture.getInternalTexture() as unknown as { _useSRGBBuffer?: boolean } | null)?._useSRGBBuffer;
+    mat.setFloat('texHwSrgb', hw ? 1 : 0);
+  } else {
+    mat.setFloat('texHwSrgb', 0);
+  }
+  mat.backFaceCulling = false; // garment shells are single-sided; inside faces must render
+  bindCamera(mat, scene);
+  return mat;
+}
+
+const LIGHT_UNIFORMS = ['cameraPos', 'flatShading', 'skyColor', 'groundColor', 'ambient', 'keyDir', 'keyColor',
+  'fillDir', 'fillColor', 'rimDir', 'rimColor', 'wrap'];
+
+function applyRig(mat: ShaderMaterial, r: LightingRig): void {
   const v3 = (a: [number, number, number]) => new Vector3(a[0], a[1], a[2]);
   const c3 = (a: [number, number, number]) => new Color3(a[0], a[1], a[2]);
   mat.setColor3('skyColor', c3(r.sky));
@@ -121,21 +153,75 @@ export function createCharacterMaterial(name: string, scene: Scene, opts: Charac
   mat.setVector3('rimDir', v3(r.rim.dir));
   mat.setColor3('rimColor', c3(r.rim.color));
   mat.setFloat('wrap', r.wrap);
-  mat.setFloat('flatShading', 1);
-  mat.setFloat('texMode', hasTex ? (opts.texMode === 'detail' ? 2 : 1) : 0);
-  if (hasTex && opts.texture) {
-    mat.setTexture('tex', opts.texture);
-    const hw = (opts.texture.getInternalTexture() as unknown as { _useSRGBBuffer?: boolean } | null)?._useSRGBBuffer;
-    mat.setFloat('texHwSrgb', hw ? 1 : 0);
-  } else {
-    mat.setFloat('texHwSrgb', 0);
-  }
-  mat.backFaceCulling = false; // garment shells are single-sided; inside faces must render
+  mat.setFloat('flatShading', 0); // S1 smooth (user pick 2026-10-13); flat stays a toggle
+}
+
+function bindCamera(mat: ShaderMaterial, scene: Scene): void {
   mat.onBindObservable.add(() => {
     const cam = scene.activeCamera;
     if (cam) mat.getEffect()?.setVector3('cameraPos', cam.globalPosition);
   });
+}
+
+// ---- M1 body / item material: skinned, per-vertex palette slot + baked AO (S1 style).
+// One shader for every character part; colors come from a per-character palette uniform
+// (PLAN §4.4: skin, lips, eyes, base layer, then 3 channels per item).
+const BODY = 'lpBody';
+export const PALETTE_SIZE = 24;
+
+Effect.ShadersStore[`${BODY}VertexShader`] = /* glsl */ `
+precision highp float;
+attribute vec3 position;
+attribute vec3 normal;
+attribute float region;
+attribute float ao;
+#include<bonesDeclaration>
+uniform mat4 world;
+uniform mat4 viewProjection;
+varying vec3 vWorldPos;
+varying vec3 vNormal;
+varying float vRegion;
+varying float vAO;
+void main(void) {
+  mat4 finalWorld = world;
+#include<bonesVertex>
+  vec4 wp = finalWorld * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  vNormal = normalize(mat3(finalWorld) * normal);
+  vRegion = region;
+  vAO = ao;
+  gl_Position = viewProjection * wp;
+}`;
+
+Effect.ShadersStore[`${BODY}FragmentShader`] = /* glsl */ `
+precision highp float;
+varying vec3 vWorldPos;
+varying vec3 vNormal;
+varying float vRegion;
+varying float vAO;
+uniform vec3 palette[${PALETTE_SIZE}];
+${LIGHTING_GLSL}
+void main(void) {
+  vec3 v;
+  vec3 n = surfaceNormal(vWorldPos, vNormal, v);
+  gl_FragColor = vec4(shade(palette[int(vRegion + 0.5)], vAO, n, v), 1.0);
+}`;
+
+export function createBodyMaterial(name: string, scene: Scene, rig: LightingRig): ShaderMaterial {
+  const mat = new ShaderMaterial(name, scene, { vertex: BODY, fragment: BODY }, {
+    attributes: ['position', 'normal', 'region', 'ao'],
+    uniforms: ['world', 'viewProjection', 'palette', ...LIGHT_UNIFORMS],
+  });
+  applyRig(mat, rig);
+  mat.backFaceCulling = false;
+  bindCamera(mat, scene);
+  mat.onError = (_e, errors) => console.error(`${name}: shader compile failed\n${errors}`);
   return mat;
+}
+
+/** Palette as linear RGB triples (PALETTE_SIZE × 3). */
+export function setPalette(mat: ShaderMaterial, linearRgb: Float32Array | number[]): void {
+  mat.setArray3('palette', Array.from(linearRgb));
 }
 
 export function setFlatShading(mat: ShaderMaterial, flat: boolean): void {

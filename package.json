@@ -10,7 +10,7 @@
     "build:firebase": "tsc -b && vite build --base=/",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"bench/tests/*.test.mjs\"",
+    "test": "node --test \"bench/tests/*.test.mjs\" \"tests/*.test.mjs\"",
     "bench": "node bench/run.mjs"
   },
   "dependencies": {
