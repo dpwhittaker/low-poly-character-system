@@ -19,4 +19,14 @@ export default defineConfig({
     // SPEC §V66.
     allowedHosts: ['.ts.net', 'localhost'],
   },
+  build: {
+    rollupOptions: {
+      // Agent shells on this box run with a hard RLIMIT_NOFILE of 512. Rollup's
+      // default parallelism opens Babylon's thousands of modules at once and hits
+      // EMFILE, which the resolver swallows and reports as a bogus "failed to
+      // resolve import @griffel/react". Capping file ops keeps `vite build`
+      // working under that limit and costs little elsewhere. SPEC §B1.
+      maxParallelFileOps: 64,
+    },
+  },
 });

@@ -10,12 +10,13 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim): body+
 
 ## §C CONSTRAINTS
 
-- Vite 7 + Babylon.js 8 + Havok physics (WASM) + TypeScript 5.9. inspector on the `i` key.
+- Vite 7 + Babylon.js 9 (`^9.30.0`) + Havok `^1.3.14` (WASM) + TypeScript 5.9. inspector on the `i` key (lazy chunk).
 - dev server = `vite@low-poly-character-system.service` (systemd, `Restart=always`), owns port `5185`. ⊥ `npm run dev` by hand — 2nd process → `EADDRINUSE` or a stale instance the proxy hits instead.
 - reverse-proxied at `/low-poly-character-system/` by claude-hub. `base` in `vite.config.ts` ! = `.project-meta.json` `proxyPrefix`.
 - `server.allowedHosts` ! ⊇ `.ts.net`. hub proxies `changeOrigin: false` ∴ upstream sees CLIENT `Host`; Vite 7 403s unknown hosts.
 - `strictPort: true` — port comes from the sentinel, ⊥ drift to a free one silently.
-- Babylon `^8.0.0` (installed 8.56.2); 9.x upgrade decided in M0 (§T.4) before code depends on it. loader: EXT_meshopt ✓ KHR_meshopt ✗.
+- Babylon 8 → 9 upgraded 2026-10-12 (user OK) before any code depended on 8. loader: EXT_meshopt ✓; KHR_meshopt ✗ as of 8.56, recheck on 9.
+- agent shells: hard `RLIMIT_NOFILE` = 512 (`ulimit -Hn`), so tools that open files in parallel must cap it (see V6). systemd units & CI have higher limits.
 - WebGL2 = baseline; WebGPU optional extra, ⊥ required.
 - perf floor: `Plaza-100` (100 chars) ≥30 fps on Intel UHD 620-class laptop & Mali-G57 / Adreno 6xx / A13-class tablet; char system ≤40% frame. pass = REAL device. ⊥ SwiftShader or RTX number as a pass.
 - assets authored in Blender (version pinned here once chosen, §T.4); TS only assembles. ⊥ procedural ring-loft / inflated humans or garments (PLAN §2: failed twice). ⊥ AI-3D meshes as body/garment runtime geometry.
@@ -57,6 +58,7 @@ R13|clipping prior art|Roblox equip-time cage fit + post-fit ray HSR; UMA raycas
 - V3: the dev server is `vite@low-poly-character-system.service`'s alone. ⊥ 2nd process on `5185`.
 - V4: `README.md` H1/¶1 = the project's title/description. ⊥ let them drift from §G.
 - V5: `optimizeDeps.exclude` ⊇ `['@babylonjs/havok']`. Havok is a WASM module; pre-bundling it breaks `.wasm` asset resolution.
+- V6: `build.rollupOptions.maxParallelFileOps` ≤ 64 in `vite.config.ts`. agent shell fd limit 512 → Rollup EMFILE, which the resolver swallows → bogus "failed to resolve import". ⊥ "fix" by guarding/removing imports (B1). proof: `npm run build` passes from an agent shell.
 
 ## §T TASKS
 
@@ -65,7 +67,7 @@ id|status|task|cites
 T1|x|agree §G w/ user; rewrite §G + `README.md` H1/¶1 to match|V4
 T2|.|first feature. add §I rows for surface it adds, §V for rules it must hold|-
 T3|x|research + plan → `PLAN.md` (tool discovery, perf budgets, modularity, clipping); seeds §G §C §R|-
-T4|.|M0: style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
+T4|~|M0 (Babylon 9 ✓ 2026-10-12): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
 T5|.|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion|PLAN §3.4
 T6|.|M2: worker assembler (morph bake → skeleton fit → item fit → hide → merge), shared material, recolor, minimal creator|PLAN §4.3
 T7|.|M3: garment build pipeline + clip-test harness; every gate ships w/ a known-bad fixture|PLAN §7.5
@@ -78,5 +80,5 @@ T11|.|M7: game-facing API (`createCharacter(descriptor)`), streaming, cache, dis
 
 id|date|cause|fix
 ---|---|---|---
-B1|2026-10-12|local `npm run build` → rollup can't resolve `@griffel/react` (inspector → fluentui) though file exists; CI's clean `npm ci` build passes ∴ local `node_modules` drifted from lockfile. fix pending: `npm ci` + restart unit|-
+B1|2026-10-12|local `npm run build` → "failed to resolve `@griffel/react`". first blamed on node_modules drift (wrong). real cause: agent shell hard fd limit 512 → Rollup EMFILE swallowed by resolver (surfaced as EMFILE once the import moved). CI passes (higher limit)|V6
 B2|2026-10-12|Pages deploy fails @ `actions/configure-pages` 404: Pages not enabled in repo settings (Source: GitHub Actions). build step itself passes|-
