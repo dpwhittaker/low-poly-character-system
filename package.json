@@ -9,7 +9,9 @@
     "build:pages": "tsc -b && vite build --base=/low-poly-character-system/",
     "build:firebase": "tsc -b && vite build --base=/",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"bench/tests/*.test.mjs\"",
+    "bench": "node bench/run.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^9.30.0",
@@ -18,6 +20,7 @@
     "@babylonjs/loaders": "^9.30.0"
   },
   "devDependencies": {
+    "playwright-core": "1.62.1",
     "typescript": "^5.9.0",
     "vite": "^7.1.6"
   }
