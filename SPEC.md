@@ -18,7 +18,7 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim, audien
 - Babylon 8 → 9 upgraded 2026-10-12 (user OK) before any code depended on 8. loader: EXT_meshopt ✓; KHR_meshopt ✗ as of 8.56, recheck on 9.
 - agent shells: hard `RLIMIT_NOFILE` = 512 (`ulimit -Hn`), so tools that open files in parallel must cap it (see V6). systemd units & CI have higher limits.
 - WebGL2 = baseline; WebGPU optional extra, ⊥ required.
-- perf floor: `Plaza-100` (100 chars) ≥30 fps on Intel UHD 620-class laptop & Mali-G57 / Adreno 6xx / A13-class tablet; char system ≤40% frame. pass = REAL device. ⊥ SwiftShader or RTX number as a pass.
+- perf floor (revised 2026-10-12): `Plaza-100` + `Meadow-100` (100 chars) ≥30 fps on Intel UHD 620-class laptop & Mali-G57 / Adreno 6xx / A13-class tablet **& midrange phone** (phone-first); char system ≤40% frame. pass = scaled gate measured ON THIS MACHINE (user decision): GPU ms on Intel UHD 770 iGPU (`VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/intel_icd.json`, ANGLE-Vulkan, `EXT_disjoint_timer_query_webgl2`) ×2 laptop / ×4 tablet-phone; CPU via CDP `Emulation.setCPUThrottlingRate` 2.5× laptop / 5× tablet-phone-Chromebook; ≥30% headroom. ⊥ the previous 'pass = real device' rule — no external calibration device (user 2026-10-12). ⊥ SwiftShader or RTX number as a pass.
 - assets authored in Blender (version pinned here once chosen, §T.4); TS only assembles. ⊥ procedural ring-loft / inflated humans or garments (PLAN §2: failed twice). ⊥ AI-3D meshes as body/garment runtime geometry.
 - shipped assets ! CC0 | MIT | own work. ⊥ Hunyuan3D output (EU/UK/KR excluded), ⊥ Quaternius (no-redistribution licence since 2026-08-28), ⊥ Mixamo, ⊥ non-commercial mocap (LAFAN1, AMASS, Bandai Namco), ⊥ nvdiffrast-baked textures (research-only).
 - one body topology (unisex), one skeleton, one character material; near tier = 1 draw/char. 0 morph targets at runtime (baked at assembly).
@@ -31,7 +31,9 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim, audien
 - ages: infant 0–1 · toddler 1–3 · child 4–12 · teen→elder 13–90 (teen–elder share one garment catalog). one topology + one skeleton across ages = goal, proven in M1 P1 (child + toddler from adult topology); fallback small frame for infant/toddler w/ same bone names + face sliders.
 - identity sliders stored as deviation from age-mean shape → aging keeps identity; child = lerp(parents) + seeded noise.
 - content rules (teen audience): non-removable base layer added by assembler; body sliders capped to non-sexualized ranges per age group; child/toddler/infant: no sex-dimorphism body sliders; ∀ item & animation carry age eligibility + content tags; one descriptor validator shared client+server. ⊥ revealing/adult-themed catalog items. ⊥ PII / photo-to-avatar.
-- user test devices: Ryzen 7 mini PC (model TBC) + Galaxy Z Fold 7 (Adreno 830). both ≫ budget targets ∴ perf gates = SCALED: CPU via CDP `Emulation.setCPUThrottlingRate` (~4× laptop, ~6× tablet), GPU ms (`EXT_disjoint_timer_query_webgl2`) × calibrated device ratio, Fold 7 10-min thermal run.
+- user devices: Ryzen 7 mini PC (Radeon 780M) + Galaxy Z Fold 7 (Adreno 830) = optional sanity checks (touch, foldable resize), ⊥ the gate.
+- UI: phone-portrait first (§4.5 PLAN); tablet/desktop = side panel; foldable cover↔inner live resize. mobile budget: char system ≤64 MB GPU, ≤150 MB JS heap @100 chars; phones capped 30 fps.
+- infants: few sliders (face mostly inherited; skin/hair/eye color), clothes = onesie, diaper (base layer), baby versions of adult clothes (auto-fit drafts → review).
 - camera: close city scenes → open countryside ∴ bench scenes `Plaza-100` (city, dense near) + `Meadow-100` (countryside, far tiers); LOD3 + draw-distance fade.
 - Blender: apt 5.0.1 (`/usr/bin/blender`) for quick batch; pinned 5.2.2 LTS `~/opt/blender-5.2.2-linux-x64/blender` for the pipeline + MCP. MCP server runs under nohup (user OK 2026-10-12, ⊥ systemd needed) → ⊥ survives reboot; `tools/blender-mcp.sh start`.
 
@@ -59,6 +61,7 @@ R10|anim sources|Mesh2Motion (CC0 anims), KayKit (CC0, 133 clips), CMU (free inc
 R11|Blender local|apt 5.0.1 headless ✓: bpy, heat weights, shape keys, glTF skin+morph+anim, Workbench/EEVEE/Cycles-CUDA (no OptiX/OIDN). Node `NullEngine` loads the GLB|PLAN §3.2
 R12|Blender MCP|Blender Lab official v1.0.3: headless `-b --command blender_mcp`, needs ≥5.1, no telemetry, no auth (loopback only). ahujasid: GUI/Xvfb only, telemetry default-on, CVE-2026-10688|projects.blender.org/lab/blender_mcp
 R13|clipping prior art|Roblox equip-time cage fit + post-fit ray HSR; UMA raycast MeshHideAsset; Sims robe-vs-skintight DMAP; MH1.2 local-frame offsets; CC AHMP downward-only hiding; Cyberpunk inward squish|PLAN §7.2, §13
+R14|perf rig|headless Chrome can be pinned to Intel UHD 770 via `VK_ICD_FILENAMES=…/intel_icd.json` + `--use-angle=vulkan`; `EXT_disjoint_timer_query_webgl2` ✓. NVIDIA ICD → SwiftShader fallback (pending driver reboot?). CDP throttle 4 → 3.4–4.2× measured|PLAN §8.1 §8.5
 
 ## §V INVARIANTS
 
@@ -87,7 +90,9 @@ T11|.|M7: game-facing API (`createCharacter(descriptor)`), streaming, cache, dis
 T12|x|fold user answers (ages/families, teen content rules, devices + scaled gates, camera range) into PLAN v1.1 + §G §C|-
 T13|.|M1 add-on: P1 builds child + toddler from the adult topology; decide one-topology vs small frame|PLAN §5.6
 T14|.|M2 add-on: shared descriptor validator (§5.7 rules) + family inheritance (lerp + seeded noise, OKLab skin)|PLAN §5.6 §5.7
-T15|.|M0 add-on: `Meadow-100` countryside bench + scaled-gate harness (CDP throttling, GPU timer × device ratio)|PLAN §8.5
+T15|.|M0 add-on: `Meadow-100` countryside bench + scaled-gate harness on this machine (UHD 770 iGPU GPU timer × tier ratio, CDP CPU throttling, ≥30% headroom)|PLAN §8.5
+T16|x|fold answers round 2 (780M, infants, phone-first, measure-on-this-machine) into PLAN v1.2 + §C; revises perf-floor §C rule|-
+T17|.|M2 add-on: phone-first creator UI (bottom sheet, foldable resize, recolored thumbnails)|PLAN §4.5
 
 ## §B BUGS
 

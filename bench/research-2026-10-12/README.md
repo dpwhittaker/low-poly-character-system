@@ -16,3 +16,8 @@ The paths are hard-coded to this machine.
   - Usage: `node skelbench.mjs <chars> <bones> bones|gltf <groups>`.
 - `drawbench.mjs` measures Babylon's JS cost per mesh under NullEngine. GL calls are
   stubs there, so treat the result as a lower bound.
+- `gpu-select.cjs` pins headless Chrome to one GPU through `VK_ICD_FILENAMES`. It prints
+  the WebGL renderer, whether `EXT_disjoint_timer_query_webgl2` is available, and the
+  measured slowdown under CDP `Emulation.setCPUThrottlingRate` 4. This is how SPEC §R14
+  was verified: Intel UHD 770 ✓ with the timer query available, while the NVIDIA ICD fell
+  back to SwiftShader.

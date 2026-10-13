@@ -3,9 +3,11 @@
 Research and plan for a customizable character system for web 3D games
 (Babylon.js 8 + Havok + Vite + TypeScript), built for a sandbox MMO life-sim.
 
-> **Status:** plan v1.1, 2026-10-12. The user's answers are folded in (§12): the audience is
-> teen girls building families, so every age is in scope; test devices are named; the
-> camera ranges from close city scenes to open countryside. Babylon is upgraded to 9.30, and
+> **Status:** plan v1.2, 2026-10-12. The user's answers are folded in (§12): the audience is
+> teen girls building families, so every age is in scope, including infants with a small
+> option set; the UI is phone-first; the camera ranges from close city scenes to open
+> countryside; performance gates are measured on this machine (its UHD 770 iGPU plus CPU
+> throttling). Babylon is upgraded to 9.30, and
 > Blender 5.2.2 + the official MCP server are installed and verified. No character code is
 > built yet. This file holds the reasoning,
 > research and sources; `SPEC.md` holds the decisions in compressed form and is the file
@@ -59,8 +61,8 @@ Research and plan for a customizable character system for web 3D games
    stress-pose × body-extreme × outfit tests. Each test must be *proven able to fail*, and
    a human visual gate sits on top.
 11. **Thin vertical slice first.** One body, a handful of items and the full pipeline end
-    to end, measured on the user's devices with scaled gates (§8.5), before scaling
-    content.
+    to end, measured on this machine's budget-class iGPU with CPU throttling (§8.5),
+    before scaling content. **The UI is phone-first** (§4.5).
 
 ---
 
@@ -71,7 +73,7 @@ Research and plan for a customizable character system for web 3D games
 | G1 | Deep body + face customization via sliders | slider count; each slider visibly changes silhouette/face at 3 m; all combinations valid | ≥ 30 body + ≥ 30 face sliders plus macro sliders (sex, weight, muscle, age, height); every combination passes §7 tests |
 | G2 | Hundreds of clothing pieces + accessories, mix-and-match | catalog entries; compatibility | ≥ 300 catalog entries from ~120 meshes (variants are data, §9); any item combination either fits or is auto-resolved by declared rules |
 | G3 | Recolor, up to 3 colors per item | channels per item | 3 independent channels per item (R primary, G accent, B detail), plus skin, hair and eye colors |
-| G4 | 100 unique characters on screen, budget laptops + midrange tablets | `Plaza-100` (city) and `Meadow-100` (countryside) benchmark scenes, fixed camera paths | ≥ 30 fps on an Intel UHD 620-class laptop and a Mali-G57 / Adreno 6xx / Apple A13-class tablet; ≥ 60 fps desktop. Character system ≤ 40 % of frame time. The user's devices are far stronger, so gates use scaled measurements (§8.5) |
+| G4 | 100 unique characters on screen: budget laptops, midrange tablets **and phones** (phone-first) | `Plaza-100` (city) and `Meadow-100` (countryside) benchmark scenes, fixed camera paths | ≥ 30 fps on an Intel UHD 620-class laptop and a Mali-G57 / Adreno 6xx / Apple A13-class tablet or midrange phone; ≥ 60 fps desktop. Character system ≤ 40 % of frame time. Measured on this machine's UHD 770 iGPU plus CPU throttling, scaled to those tiers (§8.5) |
 | G5 | Small game size | bytes over the wire | core (body, morphs, skeleton, animations, shaders) ≤ 3 MB compressed; average item ≤ 25 KB incl. LODs |
 | G6 | Quality bar | user sign-off on rendered 3D, every milestone | approved style frame; approved contact sheets; zero visible poke-through in the stress-pose suite |
 | G7 | MMO-ready | descriptor size; assembly time | descriptor ≤ 200 B; assembly ≤ 30 ms per character in a Web Worker on a budget laptop; results cached |
@@ -379,6 +381,30 @@ one preview character uses live morph targets.
   screenshot harness. World Forge's face-shadow bug came from harness lighting drifting
   from game lighting.
 
+### 4.5 Creator UI: phone first (user, 2026-10-12)
+
+The creator is designed for **portrait phones first**, then scaled up to tablets and
+desktops.
+
+- **Layout:**
+  - **Portrait phone:** the character fills the top ~55–60 % of the screen.
+  - **Bottom sheet:** tabs (Body · Face · Hair · Clothes · Colors · Family), large-thumb
+    sliders, swipe between slider groups, and an item grid of thumbnails recolored to the
+    player's colors (§9.3).
+  - **Colors:** palette swatches first, then a hue/saturation picker.
+  - **Touch:** targets ≥ 44 px, with one-handed reach for the common actions.
+  - **Larger screens:** tablets and desktops move the sheet into a side panel.
+- **Camera:** full-body, face close-up and outfit presets; drag to rotate, pinch to zoom.
+- **Foldables:** the Galaxy Z Fold-class cover screen (narrow portrait) and inner screen
+  (near square) switch live on resize, without losing state.
+- **Live preview:** only the creator's one preview character uses live morph targets while
+  a slider is dragged. Release triggers a worker re-assembly (§4.3), so the in-game cost
+  stays zero.
+- **Mobile constraints:** mobile browsers kill tabs at far lower memory than desktops (?),
+  so the character system budgets **≤ 64 MB GPU memory and ≤ 150 MB JS heap for 100
+  characters**. Resolution follows a capped DPR with dynamic scaling (§8.3). Frame rate is
+  capped at 30 fps on phones, which saves battery and heat.
+
 ---
 
 ## 5. Body and face customization
@@ -467,7 +493,7 @@ in scope:
 
 | Group | Age-macro range | Notes |
 |---|---|---|
-| Infant | 0–1 | mostly held, carried, crawling; tiny clothing set |
+| Infant | 0–1 | a full character with **fewer customizations**: face identity mostly inherited; skin, hair and eye color; a couple of body sliders. **Several clothing options: onesie, diaper, and several baby versions of adult clothes** (user, 2026-10-12). Held, carried, crawling, sitting, lying |
 | Toddler | 1–3 | own gait clips; short limbs, big head |
 | Child | 4–12 | continuous within the group |
 | Teen → adult → elder | 13–90 | continuous; teen–elder **share one garment catalog** (as The Sims does) |
@@ -486,7 +512,11 @@ in scope:
   - **Children** get their own catalog. An adult garment may be auto-fitted to a child
     body as a *draft* (D3 binding, with offsets and rigid islands scaled by local body
     scale, so a toddler's buttons are smaller). Drafts are promoted only after review.
-  - **Infants and toddlers** get a small dedicated set: onesies, overalls, sleepers.
+  - **Infants and toddlers** get onesies, diapers and sleepers, plus **baby versions of
+    adult clothes**. The adult-garment auto-fit drafts are their natural source.
+  - **Matching family outfits** come almost for free. One item family exists across age
+    groups and shares the same color channels, so "mini-me" parent-and-baby outfits are a
+    single click. That suits the audience.
 - **Animation by age.** Bone names are shared. Rotation-only clips play on any proportions
   where the motion is the same; toddler walk, infant crawl and held poses are separate
   clips.
@@ -514,7 +544,8 @@ These rules live in the data and the assembler, so a modified client cannot brea
 other players:
 
 - **A non-removable base layer.** Teen and older bodies always wear base underwear as a
-  layer-1 skin-paint region. Children and younger wear a base outfit. The assembler adds it
+  layer-1 skin-paint region. Children and toddlers wear a base outfit, and infants wear a
+  diaper. The assembler adds it
   itself, and no descriptor can remove it.
 - **Bounded sliders.** Bust, hip and glute ranges are capped at a non-sexualized range,
   set per age group. Child, toddler and infant groups have no sex-dimorphism body sliders;
@@ -843,12 +874,17 @@ on every build in CI.
 | Budget laptop | Intel UHD 620 / Iris Xe | ~440 GFLOPS (UHD 620) | the CPU is 2–3× slower single-thread than this box's i7-14700K |
 | Low midrange tablet | Mali-G52 MC2 / G57 MC3, Adreno 610 | 90–270 GFLOPS | CPU 5–7× slower (estimate); fill rate goes first; thermal throttling |
 | Midrange tablet | Adreno 660, Apple A13–A14 | 0.7–1.4 TFLOPS | |
-| **User's device: mini PC** | Ryzen 7, iGPU (Radeon 780M if 7x40/8x45-series; Vega 8 if 5000-series; model to confirm) | ~2–8 TFLOPS | far above the budget laptop, so it is a *reference* device with scaled gates (§8.5) |
-| **User's device: Galaxy Z Fold 7** | Snapdragon 8 Elite for Galaxy, Adreno 830, 120 Hz, large high-DPR inner screen | flagship | far above the budget tablet; it is the thermal, high-DPR, touch and foldable-resize test |
+| **This machine's iGPU (the gate device)** | Intel UHD 770 (Raptor Lake-S GT1, 32 EU Xe-LP) | ~0.8 TFLOPS by arithmetic (32 EU × 16 × 1.6 GHz), about **1.9× UHD 620** | selected in headless Chrome with `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/intel_icd.json` + ANGLE-Vulkan. `EXT_disjoint_timer_query_webgl2` is available, so GPU ms is measurable (verified 2026-10-12) |
+| User's device: mini PC | Ryzen 7 with **Radeon 780M** (confirmed) | ~8.6 TFLOPS dual-issue | optional sanity check only |
+| User's device: Galaxy Z Fold 7 | Snapdragon 8 Elite for Galaxy, Adreno 830, 120 Hz, high-DPR inner screen | flagship | optional sanity check: touch, foldable resize, thermal feel |
 
-The audience (teen girls) skews towards **phones and school Chromebooks**. Phones are
-treated as the tablet tier. Low-end Chromebooks (Celeron or MediaTek) can sit *below* the
-budget laptop, so the lowest quality preset must exist for them.
+**Phones are first-class** (user, 2026-10-12: "phone first"). The audience (teen girls)
+lives on phones and school Chromebooks.
+
+- **Midrange phones** (Galaxy A5x class) are the tablet tier.
+- **Budget phones** (Mali-G57 MC2 class) and **low-end Chromebooks** (Celeron or MediaTek)
+  sit *below* the budget laptop. They get the lowest preset: ~50 visible characters, the
+  lowest resolution scale, and no real shadows.
 
 **Capability floors** (web3dsurvey): WebGL2 on 99 % of Android and 98.4 % of iOS; vertex
 texture units ≥ 16 everywhere; `EXT_color_buffer_float` 99.9 %. `MAX_VERTEX_UNIFORM_VECTORS`
@@ -971,33 +1007,33 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
   culling, render). Draw calls come from Babylon's engine instrumentation
   (`drawCallsCounter`), never from counting meshes; one earlier project's profiler got
   this wrong. Active vertices and triangles are reported too.
-- **Where it runs:**
-  - **Headless Chrome on this box** (ANGLE-Vulkan, GPU and iGPU) for regressions on every
-    change.
-  - **The user's mini PC and Galaxy Z Fold 7**, through the tailnet URL, at every
-    performance gate. The page posts its results to a dev endpoint so numbers land in the
-    repo.
-- **Scaled gates.** Both user devices are several times stronger than the budget targets
-  (the user: "we'll have to scale the expectations accordingly"), so a pass is computed,
-  not eyeballed:
-  - **CPU:** run with Chrome DevTools CPU throttling (CDP
-    `Emulation.setCPUThrottlingRate`), about 4× for the budget laptop and about 6× for the
-    low tablet. The rates are calibrated once from single-thread benchmark ratios. The
-    character system's CPU ms must fit its §8.3 budget *under throttling*.
-  - **GPU:** measure GPU frame time with `EXT_disjoint_timer_query_webgl2`, through
-    Babylon's `EngineInstrumentation.gpuFrameTimeCounter`. Multiply it by a calibrated
-    device ratio, roughly 10× for 780M → UHD 620 and 15–20× for Adreno 830 → Mali-G57 MC2,
-    from published benchmark ratios. Also run at 2× resolution to stress fill rate, the
-    first thing to fail on weak GPUs.
-  - **Thermal:** sustained 10-minute runs on the Fold 7, reporting fps decay.
-  - **Calibration check (recommended, user's call):** the device ratios are estimates. One
-    real budget device would settle them, either a ~$100 Android tablet (Galaxy Tab
-    A9-class) or a one-off cloud real-device session (BrowserStack / LambdaTest offer
-    Galaxy A-series and Chromebooks) at M0 and M5.
+- **Where it runs: this machine, by the user's decision** (2026-10-12: "focus on what you
+  can measure on this machine"). No external calibration device or cloud lab is used.
+  - **GPU gate on the Intel UHD 770 iGPU** in headless Chrome (ANGLE-Vulkan, Intel ICD
+    pinned), with GPU frame time read from `EXT_disjoint_timer_query_webgl2` (Babylon
+    `EngineInstrumentation.gpuFrameTimeCounter`).
+    - **Budget laptop tier:** UHD 770 ms × **2** ≤ the GPU budget. That is the raw-FLOPS
+      ratio to UHD 620.
+    - **Tablet / midrange phone tier:** UHD 770 ms × **4**. This is an estimate from
+      published FP32 figures (Mali-G57 MC3 ~0.18, Adreno 610 ~0.15–0.27 TFLOPS) and is
+      flagged as one.
+    - **Fill rate:** runs at the target devices' real pixel counts (a 1080×2340 phone at
+      the capped DPR; a 1366×768 laptop).
+  - **CPU gate via CDP `Emulation.setCPUThrottlingRate`:** **2.5×** for the budget laptop
+    (i7-14700K vs i5-8250U-class single-thread) and **5×** for the phone, tablet and
+    low-end Chromebook tier. Verified 2026-10-12: rate 4 gave a measured 3.4–4.2× slowdown
+    on a JS loop. The calibration loop is re-run at M0 to pin the rates.
+  - **Margin:** every scaled gate must pass with **≥ 30 % headroom**, because the ratios are
+    estimates, not measurements.
+  - **Regression:** the same harness runs on every change. It is fast enough on the iGPU.
+    The RTX 4080 currently falls back to SwiftShader in headless Chrome, probably until the
+    pending NVIDIA driver reboot. RTX numbers never count as a pass anyway.
+  - **The user's devices** (780M mini PC, Fold 7) are optional sanity checks of touch,
+    foldable resize and feel, never the gate.
 
   A SwiftShader or RTX number is never a pass.
 - **When:** at **M0, before any art exists**, with placeholder characters at the planned
-  budgets. If the budgets fail on real devices, they are revised before assets are
+  budgets. If the budgets fail the scaled gates, they are revised before assets are
   authored to the wrong numbers.
 
 ---
@@ -1080,12 +1116,12 @@ Every milestone ends at three gates:
 
 | M | Deliverable | Gate to pass |
 |---|---|---|
-| **M0** Foundations | Style frames: 2–3 candidate looks (faceting, proportions, face treatment) rendered in Babylon with the shared lighting rig. `Plaza-100` benchmark with **placeholder** characters at the planned budgets, run on the user's real devices. Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
+| **M0** Foundations | Style frames: 2–3 candidate looks (faceting, proportions, face treatment) rendered in Babylon with the shared lighting rig. `Plaza-100` + `Meadow-100` benchmarks with **placeholder** characters at the planned budgets, gated on this machine (UHD 770 iGPU + CPU throttling, §8.5). Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
 | **M1** Bake-off + base body | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders, **plus a child and a toddler from the same topology** (§5.6). Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
-| **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. The shared descriptor validator (§5.7). Family inheritance (§5.6). Bare-bones creator UI (sliders, item pick, 3 colors) | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters. The validator rejects every known-bad descriptor fixture |
+| **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. The shared descriptor validator (§5.7). Family inheritance (§5.6). **Phone-first creator UI** (§4.5): sliders, item pick, 3 colors | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters. The validator rejects every known-bad descriptor fixture |
 | **M3** Garment pipeline | Build step: binding, weight inheritance, hide measurement, LODs, validator, clip-test harness, contact sheets. 20 items across all slots and layers | Every item passes every §7 test on the full envelope × pose suite. The user approves the contact sheets |
 | **M4** Animation | Retargeted clip library, custom sampler, layers, animation LOD, body-shape corrections (§7.3 D10), look-at, foot/hand IK near the camera. Age-specific clips and **cross-age interactions** (carry, hold hands, hug) (§5.6) | Stress suite in motion is clean. The user approves the motion |
-| **M5** Crowd performance | Mesh LODs, skeleton LOD, far LOD, blob shadows, staggered updates, hardware scaling | `Plaza-100` ≥ 30 fps on budget devices, measured on real hardware |
+| **M5** Crowd performance | Mesh LODs, skeleton LOD, far LOD, blob shadows, staggered updates, hardware scaling | `Plaza-100` and `Meadow-100` pass every scaled gate (§8.5) with ≥ 30 % headroom, phone tier included |
 | **M6** Content scale-up | Item spec → asset tooling; 120 meshes / 300+ catalog entries across age groups (teen–elder shared, plus the children's, toddler and infant sets); thumbnails; CI validation | All items pass; size budgets hold |
 | **M7** Game integration | Public API (`createCharacter(descriptor)`, streaming, caching, dispose), docs, example scene | API documented in `SPEC.md §I`; leak test (create/dispose 10k) |
 
@@ -1103,24 +1139,18 @@ Every milestone ends at three gates:
 | 4 | Camera distance? | **Everything from close-in city scenes to open countryside** | §8.3 view-distance row; the `Plaza-100` and `Meadow-100` scenes |
 | 5 | Install Blender 5.2.2 + the official MCP server? | **Yes**; nohup is fine instead of systemd | Done (§3.2, §3.5) |
 | 6 | Upgrade to Babylon 9? | **Yes** | Done: 9.30.0 (`SPEC.md` §C) |
+| 7 | Which Ryzen 7 is the mini PC? | **780M** | §8.1 (an optional sanity device) |
+| 8 | Infants? | **Fewer customizations, but several clothing options: onesie, diaper, and several baby versions of adult clothes** | §5.6, §5.7 (a diaper as the base layer) |
+| 9 | Phone-first? | **Yes** | §4.5 creator UI; §8.1 phones as first-class tiers |
+| 10 | A calibration device? | **No: focus on what can be measured on this machine** | §8.5: UHD 770 iGPU + CPU throttling, scaled with ≥ 30 % headroom |
 
-### Still open
+### Still open (none block M0)
 
-1. **Mini PC model.** Which Ryzen 7 is it? A Radeon 780M (7x40/8x45-series) and a Vega 8
-   (5000-series) differ by about 3–4× in GPU power, which changes the scaling factor.
-2. **Infants.** Should infants be fully customizable characters, or mostly held or carried
-   with a small set of options? This sets the infant clothing and animation scope.
-3. **Phones.** Teens play on phones a lot. Should the creator UI be phone-portrait first,
-   and should phones be a stated performance target? The current assumption is phones =
-   the tablet tier.
-4. **Calibration device.** Buy a ~$100 budget Android tablet, or run one cloud real-device
-   session, to calibrate the scaled gates (§8.5)? Optional, but it replaces estimates
-   with measurements.
-5. **Faces.** Painted features with bone expressions, or more geometric faces? (§5.5;
+1. **Faces.** Painted features with bone expressions, or more geometric faces? (§5.5;
    decided by the M0 style frames.)
-6. **Feet under shoes.** Confirm the World Forge rule carries over: the foot is always
+2. **Feet under shoes.** Confirm the World Forge rule carries over: the foot is always
    kept inside shoes.
-7. **Hands-on time.** Will the user do any manual Blender work, or should every asset be
+3. **Hands-on time.** Will the user do any manual Blender work, or should every asset be
    agent-authored? This changes the bake-off weighting.
 
 ### Risks
@@ -1135,6 +1165,7 @@ Every milestone ends at three gates:
 | One topology cannot span infant → elder | medium | P1 builds a toddler and a child from the adult topology at M1; fallback: a separate small frame for infant and toddler sharing bone names and face sliders (§5.6) |
 | The family/age scope roughly doubles content (children's catalog, age-specific clips, interactions) | high (certain) | Teen–elder share one catalog; adult garments auto-fit as children's *drafts*; infant scope kept small (open question 2) |
 | A modified client shows other players a forbidden look | medium | The shared validator runs server-side on every descriptor; the assembler always adds the base layer (§5.7) |
+| Estimated device ratios mislead the scaled gates (no real budget device) | medium | ≥ 30 % headroom on every scaled gate; prefer the throttled-CPU measurement, which is calibrated; re-check if a real low-end device ever becomes available |
 
 ---
 
