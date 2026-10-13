@@ -3,8 +3,9 @@
 Research and plan for a customizable character system for web 3D games
 (Babylon.js 9 + Havok + Vite + TypeScript), built for a sandbox MMO life-sim.
 
-> **Status:** plan v1.4, 2026-10-13. M0 is built: path C passes every scaled crowd gate
-> (§8.2b), and the user picked style **S1 with smooth normals** (§5.5). The user's answers are folded in (§12): the audience is
+> **Status:** plan v1.5, 2026-10-13. M0 is built: path C passes every scaled crowd gate
+> (§8.2b), and the user picked style **S1 with smooth normals** (§5.5). **M1 is built and
+> awaits the user's sign-off** (§11): the bake-off results are in `docs/bakeoff/M1.md`. The user's answers are folded in (§12): the audience is
 > teen girls building families, so every age is in scope, including infants with a small
 > option set; the UI is phone-first; the camera ranges from close city scenes to open
 > countryside; performance gates are measured on this machine (its UHD 770 iGPU, and its
@@ -186,7 +187,7 @@ So the tool choice must turn precision into quality:
 | Garment fit | Body-offset shells, **Surface Deform** bound to the body (loop over body shape keys to bake per-garment morph deltas for review), Shrinkwrap, MakeClothes/MHCLO binding | Surface Deform fails on non-manifold or degenerate faces, so bind to a cleaned, triangulated body copy |
 | Garment weights | Blender **Data Transfer** (`POLYINTERP_NEAREST`) then `vertex_group_limit_total(4)` + normalize; RobustSkinWeightsTransfer (MIT) for hard cases | Weights always come from the body (§7.3 D4) |
 | Skeleton | MPFB `game_engine` rig, renamed to **VRM 1.0 humanoid** names | The VRM names are a canonical retarget map |
-| Animation | **Mesh2Motion** (CC0 rigs and animations, MIT code), **KayKit** Character Animations (CC0, 133 clips), Kenney (CC0), CMU mocap (free incl. commercial, no finger data), retargeted in Blender | **Quaternius** changed to the *Quaternius Asset License v1.0* on 2026-08-28, which forbids redistributing the assets. A web game serves its files to every player, so avoid it unless that is cleared. Mixamo forbids redistributing raw files, has no API and needs the user's Adobe login, so avoid it. LAFAN1, Bandai Namco and AMASS are non-commercial, so excluded |
+| Animation | **Mesh2Motion** (CC0 rigs and animations, MIT code), **KayKit** Character Animations (CC0, 133 clips), Kenney (CC0), CMU mocap (free incl. commercial, no finger data; its terms forbid reselling the data "even in converted form" and ask for a credit line), retargeted in Blender | **Quaternius** changed to the *Quaternius Asset License v1.0* on 2026-08-28, which forbids redistributing the assets. A web game serves its files to every player, so avoid it unless that is cleared. Mixamo forbids redistributing raw files, has no API and needs the user's Adobe login, so avoid it. LAFAN1, Bandai Namco and AMASS are non-commercial, so excluded |
 | Rigid accessories / props | Blender modeling; **TRELLIS.2** (MIT) geometry as shape reference, then decimate to 300–2k tris, re-UV and flat-color | TRELLIS.2's texture bake uses **nvdiffrast, which is research-only**, so use geometry only. **Hunyuan3D 2.x is excluded**: its licence forbids distributing or displaying output in the EU, UK and South Korea, which a web game cannot honour. AI meshes are never used for bodies or garments (§2) |
 | Auto-rigging | Not needed for body or garments (one skeleton + transfer). UniRig (MIT) / Make-It-Animatable (MIT) only for odd props or creatures | |
 | Optimize / compress | gltf-transform (`dedup, prune, weld, quantize, meshopt, sparse, etc1s/uastc`), gltfpack `-cc`, `ktx` | EXT meshopt only (Babylon) |
@@ -241,6 +242,25 @@ three approaches and scored. The probes run in M1, after the M0 style frame fixe
 - Code generation is used only for runtime assembly.
 - An MCP session wins exploration speed, and batch scripts remain the reproducible
   build path.
+
+**Outcome (M1, 2026-10-13; details, scores and evidence in `docs/bakeoff/M1.md`):**
+
+- **P1 body:** (B) wins in its proxy form. MakeHuman's CC0 `female1605` proxy is
+  human-designed quads, bound linearly to the MakeHuman base, so all 658 targets transfer
+  exactly. The 23 standard cut lines are authored onto it by plane cuts. The same topology
+  covers ages 1→70. (A) and (D) were not run.
+- **P2 faces:** geometric features (S1). Brows are authored strips; MakeHuman's brow cards
+  read stern.
+- **P3 garments:** (A) body-band shells with authored openings beat (C), MakeHuman's
+  garments decimated and rebound. (C) leaves gaps at openings that don't land on cut lines.
+  MakeHuman clothes stay as shape reference.
+- **P4:** MakeHuman `game_engine` weights through the binding, plus twist drivers, hold in
+  the stress clips. The one defect is self-contact in `arms_crossed` (D10, M4).
+- **P6:** CMU 113 (idle, walk, arms up, wave) plus Mesh2Motion (sit, run, crouch, arms
+  crossed). KayKit lost every clip.
+- **P7:** pass. **P8:** the persistent Blender session for iteration; the same scripts are the
+  build.
+- **P5:** not run (M3).
 
 ### 3.5 Blender MCP (suggested by the user)
 
@@ -1217,7 +1237,7 @@ Every milestone ends at three gates:
 | M | Deliverable | Gate to pass |
 |---|---|---|
 | **M0** Foundations | Style frames: S1 all-vertex-color / S2 painted face / S3 texture detail × flat / smooth shading (§5.5), on one test character, rendered in Babylon with the shared lighting rig, plus a live phone page. `Plaza-100` + `Meadow-100` benchmarks with **placeholder** characters at the planned budgets, gated on this machine (UHD 770 iGPU + unthrottled CPU × tier factor, §8.5). Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | ✅ User picked **S1 smooth** (2026-10-13). User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
-| **M1** Bake-off + base body | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders, **plus a child and a toddler from the same topology** (§5.6). Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
+| **M1** Bake-off + base body (✅ built 2026-10-13, awaiting sign-off) | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders, **plus a child and a toddler from the same topology** (§5.6). Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
 | **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. The shared descriptor validator (§5.7). Family inheritance (§5.6). **Phone-first creator UI** (§4.5): sliders, item pick, 3 colors | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters. The validator rejects every known-bad descriptor fixture |
 | **M3** Garment pipeline | Build step: binding, weight inheritance, hide measurement, LODs, validator, clip-test harness, contact sheets. 20 items across all slots and layers | Every item passes every §7 test on the full envelope × pose suite. The user approves the contact sheets |
 | **M4** Animation | Retargeted clip library, custom sampler, layers, animation LOD, body-shape corrections (§7.3 D10), look-at, foot/hand IK near the camera. Age-specific clips and **cross-age interactions** (carry, hold hands, hug) (§5.6) | Stress suite in motion is clean. The user approves the motion |
@@ -1260,6 +1280,7 @@ None block M1.
 | Risk | Likelihood | Mitigation |
 |---|---|---|
 | Agent-authored organic shapes still look "programmer-made" | high, given §2; every asset is agent-authored (user, 2026-10-12) | Reference-data projection (§5.3), the MCP iteration loop (§3.5), side-by-side renders against the approved reference, M1 sign-off before scale, blind A/B critique |
+| Hero outfits exceed the LOD0 triangle budget: the M1 default outfit is 4.7k visible vs 3.5k (hands 1.1k, tee drawn under the open jacket, crop band under the tee, hair 0.5k) | certain, measured at M1 | Hand simplification (merge ring+pinky, fewer finger rings), culling lower-item faces fully under an outer layer, more lenient-but-safe crease coverage, lighter hair; re-measure in the M5 crowd gate |
 | Surface-binding fit distorts loose garments at extreme sliders | medium | Robe proxy, rigid islands, multi-triangle smoothing for far-off vertices, the envelope corner suite (§7.5) |
 | JS animation evaluation for 100 skeletons exceeds the CPU budget on tablets | medium | Custom sampler, animation LOD, staggering, shared clip evaluation (§8) |
 | Hundreds of items make compatibility rules explode | medium | Layers give a total order; rules are per *class*, not per item pair (§7.3 D9) |

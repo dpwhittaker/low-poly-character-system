@@ -36,6 +36,7 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim, audien
 - UI: phone-portrait first (§4.5 PLAN); tablet/desktop = side panel; foldable cover↔inner live resize. mobile budget: char system ≤64 MB GPU, ≤150 MB JS heap @100 chars; phones capped 30 fps.
 - infants: few sliders (face mostly inherited; skin/hair/eye color), clothes = onesie, diaper (base layer), baby versions of adult clothes (auto-fit drafts → review).
 - camera: close city scenes → open countryside ∴ bench scenes `Plaza-100` (city, dense near) + `Meadow-100` (countryside, far tiers); LOD3 + draw-distance fade.
+- tool decisions (M1 bake-off, `docs/bakeoff/M1.md`): body = MakeHuman CC0 proxy `female1605` + authored cut lines (P1-B); garments = body-band shells with authored openings (P3-A; MakeHuman clothes = shape reference only); faces = S1 geometry + authored brows; hair = MakeHuman CC0 hair → solid shells; clips = CMU 113 + Mesh2Motion (P6). CMU data: game credits must carry the CMU credit line; ⊥ reselling clip data.
 - Blender: apt 5.0.1 (`/usr/bin/blender`) for quick batch; pinned 5.2.2 LTS `~/opt/blender-5.2.2-linux-x64/blender` for the pipeline + MCP. MCP server runs under nohup (user OK 2026-10-12, ⊥ systemd needed) → ⊥ survives reboot; `tools/blender-mcp.sh start`.
 
 ## §I INTERFACES
@@ -142,7 +143,7 @@ T1|x|agree §G w/ user; rewrite §G + `README.md` H1/¶1 to match|V4
 T2|.|first feature. add §I rows for surface it adds, §V for rules it must hold|-
 T3|x|research + plan → `PLAN.md` (tool discovery, perf budgets, modularity, clipping); seeds §G §C §R|-
 T4|x|M0 (Babylon 9 ✓, Blender 5.2.2 + MCP ✓, perf gate ✓ path C T21, style picked T19: S1 smooth; lip fix approved 2026-10-13): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
-T5|~|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion. started 2026-10-13 (user: "go for M1"); slices T22–T27|PLAN §3.4
+T5|~|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion. started 2026-10-13 (user: "go for M1"); slices T22–T27 built 2026-10-13 → awaiting user sign-off. results `docs/bakeoff/M1.md`|PLAN §3.4
 T6|.|M2: worker assembler (morph bake → skeleton fit → item fit → hide → merge), shared material, recolor, minimal creator|PLAN §4.3
 T7|.|M3: garment build pipeline + clip-test harness; every gate ships w/ a known-bad fixture|PLAN §7.5
 T8|.|M4: custom animation sampler + shared bone texture, layers, D10 body-shape corrections|PLAN §8.4
@@ -164,7 +165,8 @@ T23|~|M1.2 rig (P4): skeleton + weights + twist drivers in (clips play on fitted
 T24|x|M1.3 animation (P6), worktree agent → merged d8f548a: 9 clips (idle walk sit sit_down arms_up wave run crouch arms_crossed), V22 V24–V27, R31–R34; idle / walk / sit / arms-up / wave retargeted onto `game_engine`; Mesh2Motion vs KayKit vs CMU; rotation-only + pelvis translation|PLAN §3.4 P6
 T25|~|M1.4 sliders (25 region/face incl. `belly` + `fat` composite; creator Weight 0–1.6, >1 drives `fat`, R35 ✓) + faces (P2): authored geometric brows (soft/straight/bold) replaced MH brow cards (read stern); region + face targets transferred from MH; 3 distinct identities; geometric eyes/brows/lips (S1)|PLAN §5.2 §5.5
 T26|~|M1.5 garments (P3): approach A built — tee 754, jeans 604, jacket (open, over tee) 908, sneakers 366 tris; hair ponytail/bob/short (MH CC0 → solid shells, 420–520), brows soft/bold (60); binding + area-scaled offsets + inherited weights + measured hiding; approach C (MH clothes decimated) not yet compared. tee, jeans, jacket (+ sneakers) authored on layer shells, surface-bound (D3), inherited weights (D4), measured band hiding (D1), recolor channels by face|PLAN §6 §7.3
-T27|.|M1.6 sign-off page: sliders + age + outfits + clips + recolor, contact sheets in motion → user sign-off (M1 gate)|PLAN §11
+T27|~|M1.6 sign-off page = the creator (Age/Body/Face/Skin/Outfit/Colors/Motion tabs, line-ups `?lineup=ages|genders|faces`, `?pick=`) → sliders + age + outfits + clips + recolor, contact sheets in motion → user sign-off (M1 gate)|PLAN §11
+T28|.|LOD0 budget gap (measured M1: default outfit 4.7k visible vs 3.5k): hand simplification, cull lower-item faces under outer layers, crease-safe crop-band hiding, hair ≤400 → re-measure at M5|PLAN §8.3 §12
 
 ## §B BUGS
 
