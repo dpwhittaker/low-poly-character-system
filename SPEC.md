@@ -44,6 +44,10 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim, audien
 - `README.md` H1 → the project's title, ¶1 → its one-sentence description
 - MCP: `.mcp.json` server `blender` = `uvx --from git+https://projects.blender.org/lab/blender_mcp.git@v1.0.3#subdirectory=mcp blender-mcp`, env `BLENDER_MCP_HOST=127.0.0.1` `BLENDER_MCP_PORT=9876` `BLENDER_PATH`. backend: headless Blender 5.2.2 `--command blender_mcp` on `127.0.0.1:9876` (no auth ∴ loopback only). raw socket: null-terminated JSON `{"type":"execute","code":…,"strict_json":true}`.
 - `tools/blender-mcp.sh start|stop|status|restart` → manages that backend; log `~/.local/state/blender-mcp/blender-mcp.log`.
+- `tools/blender-exec.py <script.py> [args…]` | `-c "<code>"` → runs Python in that backend (CLI stand-in for MCP `execute_blender_code`); `ARGS` list inside; return via `result = {…}`; exit 1 on error.
+- M0 style pipeline: `pipeline/blender/m0_style/01_source_human.py` → `02_lowpoly.py` → `03_colors.py` → `04_bake.py` → `05_export.py` (run in order via blender-exec) → `public/m0/S{1,2,3}.glb` + `public/m0/tex/*.png`. GLB contract: COLOR_0.rgb = palette albedo (linear), COLOR_0.a = AO; node extra `texMode` ∈ `none|albedo|detail`.
+- style viewer (the app during M0): `GET /low-poly-character-system/?style=S1|S2|S3|all&shade=flat|smooth&view=body|face&spin=0|1&yaw=<deg>&ui=0` ; sets `window.__ready = true` when rendered.
+- `node tools/shoot.cjs <out.png> '<query>' … [--size=WxH] [--dpr=N]` → headless Chrome on Intel UHD 770 screenshots of the dev server. `tools/style-sheet.sh` → rebuilds `docs/m0/style-frames.png`.
 
 ## §R RESEARCH
 
@@ -63,6 +67,11 @@ R11|Blender local|apt 5.0.1 headless ✓: bpy, heat weights, shape keys, glTF sk
 R12|Blender MCP|Blender Lab official v1.0.3: headless `-b --command blender_mcp`, needs ≥5.1, no telemetry, no auth (loopback only). ahujasid: GUI/Xvfb only, telemetry default-on, CVE-2026-10688|projects.blender.org/lab/blender_mcp
 R13|clipping prior art|Roblox equip-time cage fit + post-fit ray HSR; UMA raycast MeshHideAsset; Sims robe-vs-skintight DMAP; MH1.2 local-frame offsets; CC AHMP downward-only hiding; Cyberpunk inward squish|PLAN §7.2, §13
 R14|perf rig|headless Chrome can be pinned to Intel UHD 770 via `VK_ICD_FILENAMES=…/intel_icd.json` + `--use-angle=vulkan`; `EXT_disjoint_timer_query_webgl2` ✓. NVIDIA ICD → SwiftShader fallback (pending driver reboot?). CDP throttle 4 → 3.4–4.2× measured|PLAN §8.1 §8.5
+R15|glTF export|Blender's glTF exporter writes the RENDER color attribute as COLOR_0 (≠ active); after an AO bake that was `AO` → grey export. set `render_color_index` explicitly|`05_export.py`
+R16|vertex alpha|Babylon: COLOR_0 w/ alpha → `mesh.hasVertexAlpha` → transparent pass, no depth write → inner faces over skin, eyes through lids. alpha-as-data ∴ `hasVertexAlpha = false`|`src/style/viewer.ts`
+R17|sRGB textures|Babylon 9 uploads glTF color textures as sRGB buffers when possible (`InternalTexture._useSRGBBuffer`) → sampler returns linear. shader decode must branch on it (double decode = orange skin, dark detail)|`src/render/characterMaterial.ts`
+R18|Blender bakes|Cycles bake→VERTEX_COLORS w/ many selected objects wrote only the active one & left 85% body corners 0 ∴ AO via own BVH raycast (64 rays, 0.25 m). EEVEE/Workbench in -b crash in Mesa EGL until NVIDIA driver reboot → previews use Cycles CUDA|`03_colors.py`, `pipeline/blender/lib_render.py`
+R19|MakeHuman|age macro linear 11 y→25 y ∴ age 16 (0.30) = 1.37 m child body; teen look = 0.42. MH UVs give the face ~150 px/1024 ∴ face decal needs own UV island. Blender Lab MCP blocks `read_factory_settings` (use `read_homefile(use_empty=True)`)|`01_source_human.py`, `04_bake.py`
 
 ## §V INVARIANTS
 
@@ -95,7 +104,7 @@ T15|.|M0 add-on: `Meadow-100` countryside bench + scaled-gate harness on this ma
 T16|x|fold answers round 2 (780M, infants, phone-first, measure-on-this-machine) into PLAN v1.2 + §C; revises perf-floor §C rule|-
 T17|.|M2 add-on: phone-first creator UI (bottom sheet, foldable resize, recolored thumbnails)|PLAN §4.5
 T18|x|answers round 3: agent-authored assets; clip feet when measured covered (revises §C feet rule; foot bands added to cut lines)|PLAN §6.2 §7.3
-T19|~|M0.1 style frames: S1 all-vertex-color / S2 geometry + painted face / S3 texture detail × flat/smooth; one test character; shared lighting rig `src/render/lighting.ts`; contact sheet + live page `?style=`; user picks|PLAN §5.5
+T19|~|M0.1 style frames: S1 all-vertex-color / S2 geometry + painted face / S3 texture detail × flat/smooth; one test character; shared lighting rig `src/render/lighting.ts`; contact sheet + live page `?style=`; user picks. built 2026-10-13 → `docs/m0/style-frames.png`; awaiting user pick|PLAN §5.5
 T20|~|M0.2 crowd bench (worktree `m0-bench`): placeholder chars @ §8.3 budgets; Babylon-native vs custom sampler + shared bone texture + tiering; `Plaza-100` + `Meadow-100`; scaled gates on UHD 770 + CDP throttle|PLAN §8.4 §8.5
 
 ## §B BUGS
