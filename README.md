@@ -1,8 +1,8 @@
-# low-poly-character-system
+# Low-Poly Character System
 
-A 3D game. Babylon.js + Havok physics + Vite + TypeScript. Dev server at `/low-poly-character-system/`.
+A customizable low-poly character system for web 3D games, with body and face sliders, hundreds of mix-and-match recolorable clothes and accessories, and up to 100 unique animated characters on screen on budget laptops and tablets.
 
-Replace this paragraph with a one-sentence description after you know what you're building.
+Built for a sandbox MMO life-sim on Babylon.js 8, Havok, Vite and TypeScript. The dev server runs at `/low-poly-character-system/`. The research and the plan are in [`PLAN.md`](PLAN.md); the decisions are in [`SPEC.md`](SPEC.md).
 
 ## Run
 
