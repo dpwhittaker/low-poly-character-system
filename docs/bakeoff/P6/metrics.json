@@ -1,0 +1,1220 @@
+{
+ "arms_crossed__m2m": {
+  "arms_fwd_deg": 10.0,
+  "clean": [
+   "arms_fwd:10",
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 2.5,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": -0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.004,
+   "toe_min_z_r": 0.004
+  },
+  "flatten_deg": {
+   "l": 1.4,
+   "r": 3.47
+  },
+  "frames": 76,
+  "ground_dz_m": 0.009,
+  "k_hip": 0.9666,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "head",
+  "max_step_deg": 1.96,
+  "plant_feet_dz_m": {
+   "l": 0.0003,
+   "r": -0.0
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "human-base-animations.glb:Idle_FoldArms",
+  "t0": 0.0,
+  "t1": 2.5,
+  "yaw_deg": 0.0
+ },
+ "arms_up__cmu": {
+  "clean": [
+   "anchor_feet",
+   "damp_head:0.3",
+   "level_head",
+   "smooth_hands",
+   "flatten",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 7.6,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": -0.0,
+   "min_z_r": -0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0052,
+   "toe_min_z_r": 0.004
+  },
+  "flatten_deg": {
+   "l": -13.74,
+   "r": -8.36
+  },
+  "frames": 229,
+  "ground_dz_m": -0.0606,
+  "k_hip": 1.0097,
+  "kind": "once",
+  "level_head_deg": 22.53,
+  "loop_err_deg": 91.3787,
+  "loop_err_pelvis_m": 0.04503,
+  "map": "cmu",
+  "max_step_bone": "lowerarm_l",
+  "max_step_deg": 17.15,
+  "plant_feet_dz_m": {
+   "l": 0.0,
+   "r": 0.0117
+  },
+  "raw_loop_err_deg": 91.3787,
+  "raw_loop_err_pelvis_m": 0.04493,
+  "source_label": "CMU 113_23",
+  "t0": 0.0,
+  "t1": 7.6,
+  "yaw_deg": 94.73
+ },
+ "arms_up__kaykit": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 1.6667,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": 0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0218,
+   "toe_min_z_r": 0.0218
+  },
+  "flatten_deg": {
+   "l": 18.85,
+   "r": 18.85
+  },
+  "frames": 51,
+  "ground_dz_m": -0.0114,
+  "k_hip": 2.1302,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "kaykit",
+  "max_step_bone": "upperarm_l",
+  "max_step_deg": 27.03,
+  "plant_feet_dz_m": {
+   "l": 0.0058,
+   "r": -0.0
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "Rogue.glb:Cheer",
+  "t0": 0.0,
+  "t1": 1.6667,
+  "yaw_deg": 0.0
+ },
+ "arms_up__m2m": {
+  "clean": [
+   "anchor_feet",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 1.2333,
+  "feet": {
+   "max_lift_l": 0.1856,
+   "max_lift_r": 0.1855,
+   "min_z_l": -0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.1769,
+   "slide_r": 0.177,
+   "toe_min_z_l": 0.0051,
+   "toe_min_z_r": 0.0051
+  },
+  "frames": 38,
+  "ground_dz_m": 0.0047,
+  "k_hip": 0.955,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "upperarm_l",
+  "max_step_deg": 37.32,
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "human-addon-animations.glb:Jumping Jacks",
+  "t0": 0.0417,
+  "t1": 1.2917,
+  "toe_floor": {
+   "frames_bent": 0,
+   "max_toe_bend_deg": -0.0
+  },
+  "yaw_deg": 0.0
+ },
+ "crouch__m2m": {
+  "clean": [
+   "anchor_feet",
+   "close_loop",
+   "pin_feet",
+   "ground_min",
+   "plant_feet"
+  ],
+  "duration_s": 3.6667,
+  "feet": {
+   "max_lift_l": 0.0001,
+   "max_lift_r": 0.0041,
+   "min_z_l": 0.0001,
+   "min_z_r": 0.0041,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": -0.0,
+   "toe_min_z_r": -0.0032
+  },
+  "frames": 111,
+  "ground_dz_m": -0.0126,
+  "k_hip": 0.9666,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "lowerarm_l",
+  "max_step_deg": 0.39,
+  "plant_feet_dz_m": {
+   "l": 0.0,
+   "r": 0.0136
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "human-base-animations.glb:Crouch_Idle",
+  "t0": 0.0,
+  "t1": 3.6667,
+  "yaw_deg": 0.0
+ },
+ "idle__cmu": {
+  "clean": [
+   "anchor_feet",
+   "damp_head:0.2",
+   "level_head",
+   "smooth_hands",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 3.0333,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": -0.0,
+   "min_z_r": -0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0123,
+   "toe_min_z_r": 0.0053
+  },
+  "flatten_deg": {
+   "l": -12.42,
+   "r": -6.89
+  },
+  "frames": 92,
+  "ground_dz_m": -0.0485,
+  "k_hip": 1.0097,
+  "kind": "loop",
+  "level_head_deg": 83.97,
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 8.977,
+  "loop_fix_pelvis_m": 0.0383,
+  "loop_fix_worst_bone": "foot_l",
+  "loop_search_err": 2.3133,
+  "map": "cmu",
+  "max_step_bone": "calf_r",
+  "max_step_deg": 3.97,
+  "plant_feet_dz_m": {
+   "l": -0.0,
+   "r": 0.0151
+  },
+  "raw_loop_err_deg": 26.3184,
+  "raw_loop_err_pelvis_m": 0.0383,
+  "source_label": "CMU 113_21",
+  "t0": 4.8,
+  "t1": 7.825,
+  "yaw_deg": 100.32
+ },
+ "idle__kaykit": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 1.0667,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": 0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0218,
+   "toe_min_z_r": 0.0218
+  },
+  "flatten_deg": {
+   "l": 18.84,
+   "r": 18.84
+  },
+  "frames": 33,
+  "ground_dz_m": -0.0115,
+  "k_hip": 2.1302,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "kaykit",
+  "max_step_bone": "calf_l",
+  "max_step_deg": 2.18,
+  "plant_feet_dz_m": {
+   "l": -0.0,
+   "r": 0.0001
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "Rogue.glb:Idle",
+  "t0": 0.0,
+  "t1": 1.0667,
+  "yaw_deg": 0.0
+ },
+ "idle__m2m": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 2.5667,
+  "feet": {
+   "max_lift_l": 0.0001,
+   "max_lift_r": 0.0002,
+   "min_z_l": 0.0001,
+   "min_z_r": 0.0002,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0,
+   "toe_min_z_r": 0.0
+  },
+  "flatten_deg": {
+   "l": -0.11,
+   "r": 1.36
+  },
+  "frames": 78,
+  "ground_dz_m": 0.0035,
+  "k_hip": 0.955,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "hand_l",
+  "max_step_deg": 0.83,
+  "plant_feet_dz_m": {
+   "l": 0.0,
+   "r": 0.0009
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "human-addon-animations.glb:Idle_Subtle",
+  "t0": 0.0417,
+  "t1": 2.625,
+  "yaw_deg": 0.0
+ },
+ "idle__m2m_a": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 3.1333,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": -0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.004,
+   "toe_min_z_r": 0.004
+  },
+  "flatten_deg": {
+   "l": 3.45,
+   "r": 3.45
+  },
+  "frames": 95,
+  "ground_dz_m": 0.009,
+  "k_hip": 0.9666,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "calf_r",
+  "max_step_deg": 0.49,
+  "plant_feet_dz_m": {
+   "l": 0.0002,
+   "r": -0.0
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "source_label": "human-base-animations.glb:Idle_A",
+  "t0": 0.0,
+  "t1": 3.125,
+  "yaw_deg": 0.0
+ },
+ "run__cmu": {
+  "clean": [
+   "inplace",
+   "level_head",
+   "smooth_hands",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 0.8,
+  "feet": {
+   "max_lift_l": 0.1555,
+   "max_lift_r": 0.1089,
+   "min_z_l": 0.0,
+   "min_z_r": 0.025,
+   "slide_l": 0.4056,
+   "slide_r": 0.3976,
+   "toe_min_z_l": -0.0,
+   "toe_min_z_r": 0.0066
+  },
+  "flatten_deg": {
+   "l": -18.49,
+   "r": 0.19
+  },
+  "frames": 25,
+  "ground_dz_m": -0.0828,
+  "k_hip": 1.0097,
+  "kind": "loop",
+  "level_head_deg": 54.03,
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 11.633,
+  "loop_fix_pelvis_m": 0.0344,
+  "loop_fix_worst_bone": "upperarm_r",
+  "loop_search_err": 3.1858,
+  "map": "cmu",
+  "max_step_bone": "calf_l",
+  "max_step_deg": 14.66,
+  "raw_loop_err_deg": 16.9736,
+  "raw_loop_err_pelvis_m": 1.51967,
+  "removed_travel_m": 1.5193,
+  "source_label": "CMU 113_07",
+  "speed_mps": 1.9441,
+  "stance_samples": 12,
+  "stride_per_cycle_m": 1.5553,
+  "t0": 1.8333,
+  "t1": 2.6417,
+  "toe_floor": {
+   "frames_bent": 8,
+   "max_toe_bend_deg": 8.5
+  },
+  "yaw_deg": -3.28
+ },
+ "run__kaykit": {
+  "clean": [
+   "inplace",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 0.8,
+  "feet": {
+   "max_lift_l": 0.5347,
+   "max_lift_r": 0.5347,
+   "min_z_l": -0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.6257,
+   "slide_r": 0.6715,
+   "toe_min_z_l": 0.0325,
+   "toe_min_z_r": 0.0325
+  },
+  "flatten_deg": {
+   "l": 25.0,
+   "r": 25.0
+  },
+  "frames": 25,
+  "ground_dz_m": -0.0006,
+  "k_hip": 2.1302,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "kaykit",
+  "max_step_bone": "calf_r",
+  "max_step_deg": 40.95,
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "removed_travel_m": 0.0,
+  "source_label": "Rogue.glb:Running_A",
+  "speed_mps": 0.0,
+  "stance_samples": 0,
+  "stride_per_cycle_m": 0.0,
+  "t0": 0.0,
+  "t1": 0.8,
+  "toe_floor": {
+   "frames_bent": 0,
+   "max_toe_bend_deg": -0.0
+  },
+  "yaw_deg": 0.0
+ },
+ "run__m2m": {
+  "clean": [
+   "inplace",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 0.8333,
+  "feet": {
+   "max_lift_l": 0.652,
+   "max_lift_r": 0.6204,
+   "min_z_l": -0.0,
+   "min_z_r": 0.001,
+   "slide_l": 0.6703,
+   "slide_r": 0.668,
+   "toe_min_z_l": 0.0008,
+   "toe_min_z_r": 0.0003
+  },
+  "flatten_deg": {
+   "l": -3.7,
+   "r": 0.83
+  },
+  "frames": 26,
+  "ground_dz_m": 0.0096,
+  "k_hip": 0.955,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "thigh_l",
+  "max_step_deg": 46.2,
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "removed_travel_m": 0.0,
+  "source_label": "human-addon-animations.glb:Run_Female",
+  "speed_mps": 2.7672,
+  "stance_samples": 7,
+  "stride_per_cycle_m": 2.306,
+  "t0": 0.0417,
+  "t1": 0.875,
+  "toe_floor": {
+   "frames_bent": 0,
+   "max_toe_bend_deg": -0.0
+  },
+  "yaw_deg": 0.0
+ },
+ "sit__cmu": {
+  "clean": [
+   "anchor_feet",
+   "damp_head:0.2",
+   "level_head",
+   "smooth_hands",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 1.0,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": 0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0094,
+   "toe_min_z_r": 0.0044
+  },
+  "flatten_deg": {
+   "l": -10.64,
+   "r": -4.72
+  },
+  "frames": 31,
+  "ground_dz_m": -0.0396,
+  "k_hip": 1.0097,
+  "kind": "loop",
+  "level_head_deg": 54.3,
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 7.914,
+  "loop_fix_pelvis_m": 0.0015,
+  "loop_fix_worst_bone": "lowerarm_l",
+  "loop_search_err": 1.3783,
+  "map": "cmu",
+  "max_step_bone": "hand_l",
+  "max_step_deg": 1.76,
+  "plant_feet_dz_m": {
+   "l": -0.0,
+   "r": 0.0066
+  },
+  "raw_loop_err_deg": 7.9138,
+  "raw_loop_err_pelvis_m": 0.00152,
+  "seat": {
+   "frame": 15,
+   "hip_joint_y_m": 0.27,
+   "knee_y_m": -0.109,
+   "pelvis_height_m": 0.479,
+   "seat_contact_y_m": [
+    0.207,
+    0.303
+   ],
+   "seat_height_m": 0.3769
+  },
+  "source_label": "CMU 113_15",
+  "t0": 3.1667,
+  "t1": 4.1667,
+  "yaw_deg": 23.38
+ },
+ "sit__kaykit": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 3.6,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": 0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0323,
+   "toe_min_z_r": 0.0323
+  },
+  "flatten_deg": {
+   "l": -25.0,
+   "r": -25.0
+  },
+  "frames": 109,
+  "ground_dz_m": -0.5295,
+  "k_hip": 2.1302,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "kaykit",
+  "max_step_bone": "lowerarm_r",
+  "max_step_deg": 0.37,
+  "plant_feet_dz_m": {
+   "l": 0.0018,
+   "r": -0.0
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "seat": {
+   "frame": 54,
+   "hip_joint_y_m": 0.464,
+   "knee_y_m": 0.076,
+   "pelvis_height_m": 0.5055,
+   "seat_contact_y_m": [
+    0.217,
+    0.484
+   ],
+   "seat_height_m": 0.4113
+  },
+  "source_label": "Rogue.glb:Sit_Chair_Idle",
+  "t0": 0.0,
+  "t1": 3.6,
+  "yaw_deg": 0.0
+ },
+ "sit__m2m": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 2.0667,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": 0.0,
+   "min_z_r": 0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.004,
+   "toe_min_z_r": 0.004
+  },
+  "flatten_deg": {
+   "l": 3.46,
+   "r": 3.46
+  },
+  "frames": 63,
+  "ground_dz_m": -0.0022,
+  "k_hip": 0.9666,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "index_03_l",
+  "max_step_deg": 0.73,
+  "plant_feet_dz_m": {
+   "l": 0.0003,
+   "r": -0.0
+  },
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "seat": {
+   "frame": 31,
+   "hip_joint_y_m": 0.378,
+   "knee_y_m": -0.012,
+   "pelvis_height_m": 0.5091,
+   "seat_contact_y_m": [
+    0.301,
+    0.404
+   ],
+   "seat_height_m": 0.4151
+  },
+  "source_label": "human-base-animations.glb:Sitting_Idle",
+  "t0": 0.0,
+  "t1": 2.0833,
+  "yaw_deg": 0.0
+ },
+ "sit_down__cmu": {
+  "clean": [
+   "anchor_feet_end",
+   "damp_head:0.3",
+   "level_head_end",
+   "smooth_hands",
+   "flatten",
+   "pin_feet",
+   "ground_mean"
+  ],
+  "duration_s": 1.4,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0118,
+   "min_z_l": -0.0,
+   "min_z_r": 0.0118,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0048,
+   "toe_min_z_r": 0.0159
+  },
+  "flatten_deg": {
+   "l": -9.89,
+   "r": -5.97
+  },
+  "frames": 43,
+  "ground_dz_m": -0.0842,
+  "handover_to_sit": {
+   "bone": "hand_l",
+   "max_bone_deg": 28.72,
+   "pelvis_m": 0.0377
+  },
+  "k_hip": 1.0097,
+  "kind": "once",
+  "level_head_deg": 51.46,
+  "loop_err_deg": 92.2726,
+  "loop_err_pelvis_m": 0.51402,
+  "map": "cmu",
+  "max_step_bone": "hand_l",
+  "max_step_deg": 179.81,
+  "raw_loop_err_deg": 92.2726,
+  "raw_loop_err_pelvis_m": 0.51402,
+  "seat_end": {
+   "frame": 0,
+   "hip_joint_y_m": 0.292,
+   "knee_y_m": -0.091,
+   "pelvis_height_m": 0.4444,
+   "seat_contact_y_m": [
+    0.227,
+    0.327
+   ],
+   "seat_height_m": 0.3543
+  },
+  "source_label": "CMU 113_15",
+  "t0": 1.4,
+  "t1": 2.8,
+  "yaw_deg": 26.01
+ },
+ "sit_down__kaykit": {
+  "clean": [
+   "anchor_feet_end",
+   "flatten",
+   "pin_feet",
+   "ground_mean"
+  ],
+  "duration_s": 0.8,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0013,
+   "min_z_l": -0.0,
+   "min_z_r": 0.0013,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0215,
+   "toe_min_z_r": 0.0231
+  },
+  "flatten_deg": {
+   "l": 4.51,
+   "r": -11.47
+  },
+  "frames": 25,
+  "ground_dz_m": -0.3597,
+  "handover_to_sit": {
+   "bone": "calf_l",
+   "max_bone_deg": 60.51,
+   "pelvis_m": 0.1085
+  },
+  "k_hip": 2.1302,
+  "kind": "once",
+  "loop_err_deg": 126.1017,
+  "loop_err_pelvis_m": 0.85519,
+  "map": "kaykit",
+  "max_step_bone": "calf_l",
+  "max_step_deg": 18.14,
+  "raw_loop_err_deg": 82.4895,
+  "raw_loop_err_pelvis_m": 0.86654,
+  "seat_end": {
+   "frame": 0,
+   "hip_joint_y_m": 0.464,
+   "knee_y_m": 0.131,
+   "pelvis_height_m": 0.614,
+   "seat_contact_y_m": [
+    0.256,
+    0.265
+   ],
+   "seat_height_m": 0.3914
+  },
+  "source_label": "Rogue.glb:Sit_Chair_Down",
+  "t0": 0.0,
+  "t1": 0.8,
+  "yaw_deg": 0.0
+ },
+ "sit_down__m2m": {
+  "clean": [
+   "anchor_feet_end",
+   "flatten",
+   "pin_to:sit__m2m",
+   "ground_mean",
+   "blend_end_to:sit__m2m:8"
+  ],
+  "duration_s": 1.6333,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": -0.0,
+   "min_z_r": -0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.004,
+   "toe_min_z_r": 0.004
+  },
+  "flatten_deg": {
+   "l": 3.46,
+   "r": 5.88
+  },
+  "frames": 50,
+  "ground_dz_m": -0.0,
+  "handover_to_sit": {
+   "bone": "upperarm_r",
+   "max_bone_deg": 0.0,
+   "pelvis_m": 0.0
+  },
+  "k_hip": 0.9666,
+  "kind": "once",
+  "loop_err_deg": 81.2719,
+  "loop_err_pelvis_m": 0.40331,
+  "map": "m2m",
+  "max_step_bone": "pinky_01_l",
+  "max_step_deg": 15.26,
+  "raw_loop_err_deg": 98.275,
+  "raw_loop_err_pelvis_m": 0.40165,
+  "seat_end": {
+   "frame": 0,
+   "hip_joint_y_m": 0.378,
+   "knee_y_m": -0.012,
+   "pelvis_height_m": 0.5091,
+   "seat_contact_y_m": [
+    0.301,
+    0.404
+   ],
+   "seat_height_m": 0.4151
+  },
+  "source_label": "human-base-animations.glb:Sitting_Enter",
+  "t0": 0.0,
+  "t1": 1.625,
+  "yaw_deg": 0.0
+ },
+ "walk__cmu": {
+  "clean": [
+   "inplace",
+   "level_head",
+   "smooth_hands",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 1.2667,
+  "feet": {
+   "max_lift_l": 0.0585,
+   "max_lift_r": 0.0778,
+   "min_z_l": 0.0008,
+   "min_z_r": -0.0,
+   "slide_l": 0.4213,
+   "slide_r": 0.4069,
+   "toe_min_z_l": -0.0,
+   "toe_min_z_r": -0.0
+  },
+  "flatten_deg": {
+   "l": -8.79,
+   "r": 6.27
+  },
+  "frames": 39,
+  "ground_dz_m": -0.0736,
+  "k_hip": 1.0097,
+  "kind": "loop",
+  "level_head_deg": 57.87,
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 7.453,
+  "loop_fix_pelvis_m": 0.0227,
+  "loop_fix_worst_bone": "lowerarm_l",
+  "loop_search_err": 1.9051,
+  "map": "cmu",
+  "max_step_bone": "ball_r",
+  "max_step_deg": 30.18,
+  "raw_loop_err_deg": 7.4533,
+  "raw_loop_err_pelvis_m": 1.27077,
+  "removed_travel_m": 1.2706,
+  "source_label": "CMU 113_25",
+  "speed_mps": 1.031,
+  "stance_samples": 32,
+  "stride_per_cycle_m": 1.3059,
+  "t0": 1.0667,
+  "t1": 2.3417,
+  "toe_floor": {
+   "frames_bent": 10,
+   "max_toe_bend_deg": 45.9
+  },
+  "yaw_deg": 177.26
+ },
+ "walk__kaykit": {
+  "clean": [
+   "inplace",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 1.0667,
+  "feet": {
+   "max_lift_l": 0.4928,
+   "max_lift_r": 0.488,
+   "min_z_l": 0.0007,
+   "min_z_r": 0.0,
+   "slide_l": 0.4394,
+   "slide_r": 0.4603,
+   "toe_min_z_l": 0.033,
+   "toe_min_z_r": 0.0385
+  },
+  "flatten_deg": {
+   "l": 6.3,
+   "r": 10.59
+  },
+  "frames": 33,
+  "ground_dz_m": 0.0243,
+  "k_hip": 2.1302,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "kaykit",
+  "max_step_bone": "calf_l",
+  "max_step_deg": 60.18,
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "removed_travel_m": 0.0,
+  "source_label": "Rogue.glb:Walking_A",
+  "speed_mps": 1.9576,
+  "stance_samples": 2,
+  "stride_per_cycle_m": 2.0882,
+  "t0": 0.0,
+  "t1": 1.0667,
+  "toe_floor": {
+   "frames_bent": 0,
+   "max_toe_bend_deg": -0.0
+  },
+  "yaw_deg": 0.0
+ },
+ "walk__m2m": {
+  "clean": [
+   "inplace",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 1.6667,
+  "feet": {
+   "max_lift_l": 0.1772,
+   "max_lift_r": 0.1762,
+   "min_z_l": 0.0,
+   "min_z_r": 0.0004,
+   "slide_l": 0.3712,
+   "slide_r": 0.3814,
+   "toe_min_z_l": 0.0109,
+   "toe_min_z_r": 0.0141
+  },
+  "flatten_deg": {
+   "l": 7.99,
+   "r": 9.4
+  },
+  "frames": 51,
+  "ground_dz_m": 0.0129,
+  "k_hip": 0.9666,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "calf_r",
+  "max_step_deg": 10.11,
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "removed_travel_m": 0.0,
+  "source_label": "human-base-animations.glb:Walk",
+  "speed_mps": 0.7763,
+  "stance_samples": 19,
+  "stride_per_cycle_m": 1.2938,
+  "t0": 0.0,
+  "t1": 1.6667,
+  "toe_floor": {
+   "frames_bent": 0,
+   "max_toe_bend_deg": -0.0
+  },
+  "yaw_deg": 0.0
+ },
+ "walk__m2m_female": {
+  "clean": [
+   "inplace",
+   "flatten_stance",
+   "close_loop",
+   "ground_min_hb",
+   "toe_floor"
+  ],
+  "duration_s": 1.3667,
+  "feet": {
+   "max_lift_l": 0.1028,
+   "max_lift_r": 0.0863,
+   "min_z_l": 0.001,
+   "min_z_r": -0.0,
+   "slide_l": 0.329,
+   "slide_r": 0.3554,
+   "toe_min_z_l": 0.0006,
+   "toe_min_z_r": 0.001
+  },
+  "flatten_deg": {
+   "l": 0.92,
+   "r": 0.52
+  },
+  "frames": 42,
+  "ground_dz_m": 0.0013,
+  "k_hip": 0.955,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 0.0,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "Root",
+  "map": "m2m",
+  "max_step_bone": "calf_r",
+  "max_step_deg": 13.74,
+  "raw_loop_err_deg": 0.0,
+  "raw_loop_err_pelvis_m": 0.0,
+  "removed_travel_m": 0.0,
+  "source_label": "human-addon-animations.glb:Walk_Female",
+  "speed_mps": 0.9518,
+  "stance_samples": 40,
+  "stride_per_cycle_m": 1.3008,
+  "t0": 0.0417,
+  "t1": 1.4167,
+  "toe_floor": {
+   "frames_bent": 0,
+   "max_toe_bend_deg": -0.0
+  },
+  "yaw_deg": 0.0
+ },
+ "wave__cmu": {
+  "clean": [
+   "damp_head:0.3",
+   "level_head",
+   "smooth_hands",
+   "close_loop",
+   "pin_under",
+   "anchor_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 0.6,
+  "feet": {
+   "max_lift_l": 0.0,
+   "max_lift_r": 0.0,
+   "min_z_l": -0.0,
+   "min_z_r": -0.0,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": -0.0,
+   "toe_min_z_r": -0.0
+  },
+  "frames": 19,
+  "ground_dz_m": 0.0,
+  "k_hip": 1.0097,
+  "kind": "loop",
+  "level_head_deg": 52.73,
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 11.947,
+  "loop_fix_pelvis_m": 0.0067,
+  "loop_fix_worst_bone": "lowerarm_r",
+  "loop_search_err": 2.0765,
+  "map": "cmu",
+  "max_step_bone": "lowerarm_r",
+  "max_step_deg": 41.05,
+  "plant_feet_dz_m": {
+   "l": -0.0,
+   "r": 0.0
+  },
+  "raw_loop_err_deg": 18.4502,
+  "raw_loop_err_pelvis_m": 0.00669,
+  "source_label": "CMU 113_27",
+  "t0": 0.9083,
+  "t1": 1.5083,
+  "yaw_deg": 95.24
+ },
+ "wave__m2m": {
+  "clean": [
+   "anchor_feet",
+   "flatten",
+   "close_loop",
+   "pin_feet",
+   "ground_mean",
+   "plant_feet"
+  ],
+  "duration_s": 0.9,
+  "feet": {
+   "max_lift_l": 0.0001,
+   "max_lift_r": 0.0001,
+   "min_z_l": 0.0001,
+   "min_z_r": 0.0001,
+   "slide_l": 0.0,
+   "slide_r": 0.0,
+   "toe_min_z_l": 0.0,
+   "toe_min_z_r": 0.0
+  },
+  "flatten_deg": {
+   "l": -0.11,
+   "r": -0.11
+  },
+  "frames": 28,
+  "ground_dz_m": -0.0003,
+  "k_hip": 0.955,
+  "kind": "loop",
+  "loop_err_deg": 0.0,
+  "loop_err_pelvis_m": 0.0,
+  "loop_fix_max_deg": 7.071,
+  "loop_fix_pelvis_m": 0.0,
+  "loop_fix_worst_bone": "neck_01",
+  "loop_search_err": 0.3766,
+  "map": "m2m",
+  "max_step_bone": "hand_r",
+  "max_step_deg": 7.65,
+  "plant_feet_dz_m": {
+   "l": 0.0012,
+   "r": 0.0
+  },
+  "raw_loop_err_deg": 7.0709,
+  "raw_loop_err_pelvis_m": 1e-05,
+  "source_label": "human-addon-animations.glb:Greeting",
+  "t0": 1.4333,
+  "t1": 2.3167,
+  "yaw_deg": 0.0
+ }
+}
