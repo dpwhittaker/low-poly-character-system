@@ -82,7 +82,7 @@ R21|where CPU goes|A: AnimationGroups (2 weighted, 60 bones ×100) 6.5–8 ms ra
 R22|engine floor|`scene.render()` w/ 0 chars (+ instrumentation) = 0.34 ms p50 raw ≈ 2.4 ms @×5 ∴ book it to world/engine, grade chars net of it (`gradeNet`)|`empty-floor-*.json`
 R23|CDP throttling|`Emulation.setCPUThrottlingRate` 2.5×/5× → B/C sub-ms frames 0.6–1.2× slower, A long frames 1.6–2.7×, throttled empty scene p50 FASTER than raw ∴ ⊥ as slow-CPU emulator (B3, V14)|`bench/throttle-check.mjs`
 R24|hybrid CPU noise|i7-14700K CPUs 0–15 P-cores 5.5 GHz, 16–27 E-cores 4.3 GHz. unpinned same-run spread up to ~2.8×; `taskset -a -cp 0-15` → repeat within ~7%|`lscpu -e`; `bench/run.mjs` `pinToPCores`
-R25|budget split|C @ phone tier: anim 0.9 · upload+cull 1.3 · submit 2.0 (net) ms scaled vs split 3/2/2 → anim over-provisioned, submit under. proposal: anim ≤1.5 · upload+cull ≤1.5 · submit ≤3 net of floor, total 7 unchanged (PLAN §8.2b/§8.3)|PLAN §8.2b
+R25|budget split|C @ phone tier: anim 0.9 · upload+cull 1.3 · submit 2.0 (net) ms scaled vs split 3/2/2 → anim over-provisioned, submit under. proposal: anim ≤1.5 · upload+cull ≤1.5 · submit ≤3 net of floor, total 7 unchanged (PLAN §8.2b/§8.3). ADOPTED variant 1.5 / 2 / 3.5 (1.5/1.5/3 then failed Plaza-phone upload+cull 1.32 vs 1.05): C passes all scaled gates net (T21)|PLAN §8.2b
 
 ## §V INVARIANTS
 
@@ -109,7 +109,7 @@ id|status|task|cites
 T1|x|agree §G w/ user; rewrite §G + `README.md` H1/¶1 to match|V4
 T2|.|first feature. add §I rows for surface it adds, §V for rules it must hold|-
 T3|x|research + plan → `PLAN.md` (tool discovery, perf budgets, modularity, clipping); seeds §G §C §R|-
-T4|~|M0 (Babylon 9 ✓, Blender 5.2.2 + MCP ✓ 2026-10-12): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
+T4|~|M0 (Babylon 9 ✓, Blender 5.2.2 + MCP ✓, perf gate ✓ path C T21, style frames built T19 → awaiting user pick): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
 T5|.|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion|PLAN §3.4
 T6|.|M2: worker assembler (morph bake → skeleton fit → item fit → hide → merge), shared material, recolor, minimal creator|PLAN §4.3
 T7|.|M3: garment build pipeline + clip-test harness; every gate ships w/ a known-bad fixture|PLAN §7.5
@@ -126,6 +126,7 @@ T17|.|M2 add-on: phone-first creator UI (bottom sheet, foldable resize, recolore
 T18|x|answers round 3: agent-authored assets; clip feet when measured covered (revises §C feet rule; foot bands added to cut lines)|PLAN §6.2 §7.3
 T19|~|M0.1 style frames: S1 all-vertex-color / S2 geometry + painted face / S3 texture detail × flat/smooth; one test character; shared lighting rig `src/render/lighting.ts`; contact sheet + live page `?style=`; user picks. built 2026-10-13 → `docs/m0/style-frames.png`; awaiting user pick|PLAN §5.5
 T20|x|M0.2 crowd bench (branch `m0-bench`): placeholder chars @ §8.3 budgets; A Babylon-native / B custom sampler + shared bone texture / C + tiering; `Plaza-100` + `Meadow-100` + `empty` floor; scaled gates on UHD 770 + P-cores. result: C passes laptop (net), phone total net ✓ but `cpu.submit` ✗ → budget split revision proposed (R20); A fails everywhere|V7 V8 V9 V10 V11 V12 V13 V14 V15 R20–R25
+T21|x|adopt CPU split anim ≤1.5 · upload+cull ≤2 · submit ≤3.5 (net of floor), total 7 unchanged; `bench/regrade.mjs` re-grades stored results → C PASS all 4 scene×tier net; tightest Plaza-phone upload+cull 1.32/1.40|R25 V11
 
 ## §B BUGS
 

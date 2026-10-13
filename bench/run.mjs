@@ -16,7 +16,7 @@ import { loadavg, cpus } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
-import { TIERS, grade, gradeNet, isGradableRenderer } from '../src/bench/gates.ts';
+import { TIERS, grade, gradeNet, isGradableRenderer, CPU_BUDGET } from '../src/bench/gates.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist-bench');
@@ -185,7 +185,7 @@ async function main() {
     await browser.close();
     server.close();
   }
-  const md = `# M0 crowd bench — ${day}\n\nRenderer: ${results[0]?.renderer}\n\nGates (PLAN §8.5): p95 values measured unthrottled on this box, then scaled — CPU × 2.5 (laptop) / × 5 (phone), GPU (UHD 770) × 2 / × 4. Limits: GPU ≤ ${f2(0.4 * 1000 / 30 * 0.7)} ms; CPU ≤ ${f2(7 * 0.7)} ms total (anim ≤ ${f2(3 * 0.7)}, upload+cull ≤ ${f2(2 * 0.7)}, submit ≤ ${f2(2 * 0.7)}) — all with 30 % headroom. Tier "raw" is informational. "load" = 1-min load average when the run started (${cpus().length} threads; other sessions share this machine).\n\n"strict" grades absolute p95 values. "net of engine floor" grades the same gates after subtracting the \`empty\` scene's p50 (scene.render() with zero characters: clear, camera, ground, instrumentation), which the world pays regardless of characters (\`gradeNet\` in src/bench/gates.ts).\n\n${summaryTable(results)}\n`;
+  const md = `# M0 crowd bench — ${day}\n\nRenderer: ${results[0]?.renderer}\n\nGates (PLAN §8.5): p95 values measured unthrottled on this box, then scaled — CPU × 2.5 (laptop) / × 5 (phone), GPU (UHD 770) × 2 / × 4. Limits: GPU ≤ ${f2(0.4 * 1000 / 30 * 0.7)} ms; CPU ≤ ${f2(CPU_BUDGET.total * 0.7)} ms total (anim ≤ ${f2(CPU_BUDGET.anim * 0.7)}, upload+cull ≤ ${f2(CPU_BUDGET.uploadCull * 0.7)}, submit ≤ ${f2(CPU_BUDGET.submit * 0.7)}) — all with 30 % headroom. Tier "raw" is informational. "load" = 1-min load average when the run started (${cpus().length} threads; other sessions share this machine).\n\n"strict" grades absolute p95 values. "net of engine floor" grades the same gates after subtracting the \`empty\` scene's p50 (scene.render() with zero characters: clear, camera, ground, instrumentation), which the world pays regardless of characters (\`gradeNet\` in src/bench/gates.ts).\n\n${summaryTable(results)}\n`;
   await writeFile(join(outDir, 'summary.md'), md);
   console.log('\n' + summaryTable(results));
   console.log(`\nwrote ${outDir}`);

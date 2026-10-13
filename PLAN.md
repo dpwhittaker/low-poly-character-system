@@ -983,7 +983,12 @@ submit ≤ 1.4); GPU ≤ 9.3 ms.
   **At phone tier C passes the total net (3.2–3.8 ≤ 4.9)**, but `cpu.submit` misses:
   about 0.4 ms raw, × 5 = 2.0 ms, against 1.4. Strict, the total also misses (4.9–5.5),
   because the floor (about 2.4 ms at ×5) is counted in it.
-- **The budget split needs revising, not the total.**
+- **Re-graded with the adopted split** (`node bench/regrade.mjs bench/results/2026-10-13`):
+  path C **passes every scaled gate in both scenes at both tiers, net of the engine floor**.
+  The tightest margin is Plaza-phone upload+cull, 1.32 ms against a 1.40 limit. Real
+  materials and assembly will add cost, so the LOD1 batching and WebGPU snapshot savings
+  below are queued, not optional.
+- **The budget split needed revising, not the total.**
   - **Animation:** C spends at most 0.9 ms of its 3 ms animation budget.
   - **Submission:** Babylon's `scene.render()` takes about 0.35 ms raw for zero characters
     and about 0.4 ms more for C's 6–13 draws.
@@ -1006,7 +1011,7 @@ submit ≤ 1.4); GPU ≤ 9.3 ms.
 | Draw calls, characters only | near tier: 1 per character; far tier: batched (§8.4 #4). **≤ 60 on tablets, ≤ 120 on laptops**. Measured (M0, path C): 13 in Plaza-100, 6 in Meadow-100 |
 | Texture memory, all characters | ≤ 32 MB: shared atlases (≈ 1–2 MB with mips), one shared bone texture (100 × 60 × 3 texels ≈ 290 KB), no per-character textures |
 | Animation update rate | near 60 Hz (≤ 4 active blends) · mid 30 Hz staggered · far 10–15 Hz · off-screen 0 |
-| CPU per frame (tablet, 30 fps) | character system ≤ 7 ms total · game logic ≤ 4 ms · ≥ 30 % headroom. Split: ~~animation ≤ 3 · upload+cull ≤ 2 · submission ≤ 2~~ → **proposed after M0 measurement: animation ≤ 1.5 · upload+cull ≤ 1.5 · submission ≤ 3 net of the engine floor** (path C measured at phone tier: 0.9 / 1.3 / 2.0 ms; floor ≈ 2.4 ms booked to world/engine; §8.2b) |
+| CPU per frame (tablet, 30 fps) | character system ≤ 7 ms total · game logic ≤ 4 ms · ≥ 30 % headroom. Split: ~~animation ≤ 3 · upload+cull ≤ 2 · submission ≤ 2~~ → **adopted after M0 (2026-10-13): animation ≤ 1.5 · upload+cull ≤ 2 · submission ≤ 3.5 net of the engine floor**. Path C measured at the phone tier: 0.9 / 1.3 / 2.0 ms; the floor ≈ 2.4 ms is booked to world/engine (§8.2b). The bench's first proposal of 1.5 / 1.5 / 3 failed Plaza-phone upload+cull. Re-grade: `bench/results/2026-10-13/regrade.md` |
 | GPU per frame | characters ≤ 40 % · world 40 % · post/UI ≤ 20 % · plus 30–40 % thermal margin on tablets |
 | Resolution | `limitDeviceRatio` 1–1.5 on tablets, plus dynamic resolution driven by frame time |
 

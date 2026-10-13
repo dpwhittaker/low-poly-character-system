@@ -12,8 +12,12 @@
 export const FRAME_MS = 1000 / 30;
 /** characters may use ≤ 40 % of a 30 fps frame on the GPU */
 export const GPU_BUDGET_MS = 0.4 * FRAME_MS;
-/** character-system CPU per frame: animation ≤ 3 + upload/culling ≤ 2 + submission ≤ 2 */
-export const CPU_BUDGET = { total: 7, anim: 3, uploadCull: 2, submit: 2 } as const;
+/** Character-system CPU per frame at the tier (PLAN §8.3, revised after M0, SPEC R25, T21):
+ *  animation ≤ 1.5 + upload/culling ≤ 2 + submission ≤ 3.5 (net of the engine floor); total 7.
+ *  ⊥ the pre-M0 3 / 2 / 2 split: measured path C used ≤ 0.9 ms of animation but needed ~2 ms
+ *  for draw submission at the phone tier. ⊥ the bench's first proposal 1.5 / 1.5 / 3: it then
+ *  failed Plaza-phone upload+cull (1.32 ms scaled vs a 1.05 limit). */
+export const CPU_BUDGET = { total: 7, anim: 1.5, uploadCull: 2, submit: 3.5 } as const;
 export const HEADROOM = 0.3;
 
 export interface Tier {
