@@ -482,12 +482,20 @@ LOD0 body triangles are in the head.
 
 - **Eyes:** small geometric eyes driven by eye bones, so characters can look at each
   other. That matters in a social game.
-- **Features:** brows, lip color, makeup and stubble come from a shared decal atlas,
-  selected per character.
 - **Expressions:** jaw and face bones at LOD0. No runtime morphs.
+- **Features: geometry or texture, settled by seeing** (user, 2026-10-12). M0 renders the
+  same test character three ways:
 
-The alternative is painted-texture expressions, Animal-Crossing style. The M0 style frame
-settles which one is used.
+| Style | Form | Color and features | Textures |
+|---|---|---|---|
+| **S1 All vertex color** | everything modeled | per-face vertex colors only. Eyes, brows, lips, nostrils, hairline and clothing details are geometry with their own face colors. Recolor channels are per-face ids | **none** |
+| **S2 Geometry + painted face** | same faceted geometry | the body and clothes as in S1; eyes, brows, lips, blush, freckles and stubble from a shared face-decal texture | face decal atlas only |
+| **S3 Texture detail throughout** | same geometry | S2 plus greyscale detail/mask textures on clothes (seams, folds, prints) and hair (strand shading) | decal + detail/mask atlases |
+
+  Each style is rendered with **flat facets** and **smooth normals** under the one shared
+  lighting rig, next to the approved reference. The user sees a contact sheet plus a live
+  page to orbit on a phone. S1 is the cheapest by far (no textures, no UV2, no atlas
+  bleed), so it wins any tie.
 
 ### 5.6 Ages and families
 
@@ -1122,7 +1130,7 @@ Every milestone ends at three gates:
 
 | M | Deliverable | Gate to pass |
 |---|---|---|
-| **M0** Foundations | Style frames: 2–3 candidate looks (faceting, proportions, face treatment) rendered in Babylon with the shared lighting rig. `Plaza-100` + `Meadow-100` benchmarks with **placeholder** characters at the planned budgets, gated on this machine (UHD 770 iGPU + CPU throttling, §8.5). Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
+| **M0** Foundations | Style frames: S1 all-vertex-color / S2 painted face / S3 texture detail × flat / smooth shading (§5.5), on one test character, rendered in Babylon with the shared lighting rig, plus a live phone page. `Plaza-100` + `Meadow-100` benchmarks with **placeholder** characters at the planned budgets, gated on this machine (UHD 770 iGPU + CPU throttling, §8.5). Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
 | **M1** Bake-off + base body | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders, **plus a child and a toddler from the same topology** (§5.6). Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
 | **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. The shared descriptor validator (§5.7). Family inheritance (§5.6). **Phone-first creator UI** (§4.5): sliders, item pick, 3 colors | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters. The validator rejects every known-bad descriptor fixture |
 | **M3** Garment pipeline | Build step: binding, weight inheritance, hide measurement, LODs, validator, clip-test harness, contact sheets. 20 items across all slots and layers | Every item passes every §7 test on the full envelope × pose suite. The user approves the contact sheets |

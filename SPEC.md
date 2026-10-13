@@ -95,6 +95,8 @@ T15|.|M0 add-on: `Meadow-100` countryside bench + scaled-gate harness on this ma
 T16|x|fold answers round 2 (780M, infants, phone-first, measure-on-this-machine) into PLAN v1.2 + §C; revises perf-floor §C rule|-
 T17|.|M2 add-on: phone-first creator UI (bottom sheet, foldable resize, recolored thumbnails)|PLAN §4.5
 T18|x|answers round 3: agent-authored assets; clip feet when measured covered (revises §C feet rule; foot bands added to cut lines)|PLAN §6.2 §7.3
+T19|~|M0.1 style frames: S1 all-vertex-color / S2 geometry + painted face / S3 texture detail × flat/smooth; one test character; shared lighting rig `src/render/lighting.ts`; contact sheet + live page `?style=`; user picks|PLAN §5.5
+T20|~|M0.2 crowd bench (worktree `m0-bench`): placeholder chars @ §8.3 budgets; Babylon-native vs custom sampler + shared bone texture + tiering; `Plaza-100` + `Meadow-100`; scaled gates on UHD 770 + CDP throttle|PLAN §8.4 §8.5
 
 ## §B BUGS
 
