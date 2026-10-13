@@ -228,13 +228,21 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
   } else if (ui.lineup === 'genders') {
     for (const gender of [0, 0.25, 0.5, 0.75, 1]) addChar({ ...base, years: 25, gender });
   } else if (ui.lineup === 'faces') {
-    addChar({ ...base, skin: 1, sliders: { faceRound: 0.6, eyeSize: 0.5, noseTip: 0.5, cheeks: 0.4, smile: 0.4 } });
-    addChar({ ...base, skin: 4, race: { african: 0.8, asian: 0.1, caucasian: 0.1 }, eyes: 1,
-      sliders: { faceSquare: 0.4, lips: 0.7, noseWidth: 0.5, jawWidth: 0.3, eyeTilt: 0.3 } });
-    addChar({ ...base, skin: 2, race: { african: 0.1, asian: 0.8, caucasian: 0.1 }, eyes: 4,
-      sliders: { faceRound: -0.3, eyeTilt: 0.6, noseLength: -0.4, chinLength: 0.4, browHeight: 0.4 } });
+    const outfit = ['tee', 'jeans', 'sneakers'];
+    addChar({ ...base, years: 15, gender: 0.05, skin: 1, hair: 3, eyes: 0, wear: [...outfit, 'hair_ponytail', 'brows_soft'],
+      race: { african: 0.1, asian: 0.1, caucasian: 0.8 }, sliders: { faceRound: 0.5, eyeSize: 0.4, noseTip: 0.5, cheeks: 0.4, smile: 0.5 } });
+    addChar({ ...base, years: 32, gender: 0.1, skin: 6, hair: 1, eyes: 1, wear: [...outfit, 'hair_bob', 'brows_straight'],
+      race: { african: 0.85, asian: 0.05, caucasian: 0.1 }, sliders: { lips: 0.6, noseWidth: 0.4, jawWidth: 0.2, smile: 0.3 } });
+    addChar({ ...base, years: 45, gender: 0.95, skin: 3, hair: 1, eyes: 4, weight: 1.15, wear: [...outfit, 'hair_short', 'brows_bold'],
+      race: { african: 0.05, asian: 0.85, caucasian: 0.1 }, sliders: { faceSquare: 0.4, eyeTilt: 0.3, chinLength: 0.2, jawWidth: 0.5 } });
   } else {
     addChar(base);
+  }
+
+  if (params.has('pick')) { // one entry of a line-up (screenshots)
+    const k = Number(params.get('pick'));
+    chars.forEach((c, i) => { if (i !== k) { c.parts.mesh.setEnabled(false); c.disc.setEnabled(false); } });
+    chars.splice(0, chars.length, chars[k]);
   }
 
   function layout(): void {
@@ -250,8 +258,9 @@ export async function startCreator(canvas: HTMLCanvasElement): Promise<void> {
     const portrait = Math.min(1, engine.getAspectRatio(camera) / 0.75);
     if (ui.view === 'face') {
       const headY = chars.reduce((a, c) => a + c.headY, 0) / chars.length;
-      camera.target = new Vector3(0, headY + 0.09 * (tallest / 1.65), 0);
-      camera.radius = (chars.length > 1 ? Math.max(0.8 * (tallest / 1.65), total * 1.1) : 0.8 * (tallest / 1.65)) / portrait;
+      camera.target = new Vector3(0, headY + 0.06 * (tallest / 1.65), 0);
+      const fitW = (total * 1.05) / (2 * Math.tan(camera.fov / 2) * engine.getAspectRatio(camera));
+      camera.radius = chars.length > 1 ? Math.max(0.8 * (tallest / 1.65), fitW) : (0.8 * (tallest / 1.65)) / portrait;
     } else {
       camera.target = new Vector3(0, tallest * 0.52, 0);
       const fitH = tallest * 1.25 / (2 * Math.tan(camera.fov / 2));

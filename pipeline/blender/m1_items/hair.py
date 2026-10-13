@@ -11,7 +11,7 @@ exec(open("/home/david/projects/low-poly-character-system/pipeline/blender/m1_it
 
 STYLES = {  # id: (MakeHuman asset, display name, triangle budget)
     "hair_ponytail": ("hair/ponytail01/ponytail01.mhclo", "Ponytail", 520),
-    "hair_bob": ("hair/bob02/bob02.mhclo", "Bob", 480),
+    "hair_bob": ("hair/bob01/bob01.mhclo", "Bob", 480),  # bob02's side fringe hid an eye
     "hair_short": ("hair/short02/short02.mhclo", "Short", 420),
 }
 body = Body()
@@ -20,6 +20,17 @@ out = {}
 for hid in (ARGS or list(STYLES)):
     rel, name, budget = STYLES[hid]
     ob, _ = mh_asset_on_default_body(rel, "Hair")
+    # keep the eyes clear: drop strand cards in front of the face below the brow line
+    # (MakeHuman's bobs comb a side fringe over one eye; remeshed thick, it hid the eye)
+    eyes = [b for b in json.load(open(BUILD + "/skeleton.json"))["bones"] if b["name"].startswith("eye_")]
+    ez = np.mean([b["rest_head"][2] for b in eyes]) + 0.012  # just under the brows (house style lifts the eyes)
+    ey = np.mean([b["rest_head"][1] for b in eyes])
+    bm = bmesh.new(); bm.from_mesh(ob.data)
+    mw = ob.matrix_world
+    kill = [f for f in bm.faces
+            if (lambda c: abs(c.x) < 0.075 and c.y < ey + 0.01 and c.z < ez + 0.02)(mw @ f.calc_center_median())]
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+    bm.to_mesh(ob.data); bm.free()
     solid_remesh(ob, thickness=0.009, voxel=0.0055)
     keep_largest(ob, 1)
     decimate_to(ob, budget)
