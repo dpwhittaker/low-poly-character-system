@@ -110,8 +110,8 @@ id|status|task|cites
 T1|x|agree §G w/ user; rewrite §G + `README.md` H1/¶1 to match|V4
 T2|.|first feature. add §I rows for surface it adds, §V for rules it must hold|-
 T3|x|research + plan → `PLAN.md` (tool discovery, perf budgets, modularity, clipping); seeds §G §C §R|-
-T4|~|M0 (Babylon 9 ✓, Blender 5.2.2 + MCP ✓, perf gate ✓ path C T21, style picked T19: S1 smooth → lip fix awaiting user look): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
-T5|.|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion|PLAN §3.4
+T4|x|M0 (Babylon 9 ✓, Blender 5.2.2 + MCP ✓, perf gate ✓ path C T21, style picked T19: S1 smooth; lip fix approved 2026-10-13): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
+T5|~|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion. started 2026-10-13 (user: "go for M1"); slices T22–T27|PLAN §3.4
 T6|.|M2: worker assembler (morph bake → skeleton fit → item fit → hide → merge), shared material, recolor, minimal creator|PLAN §4.3
 T7|.|M3: garment build pipeline + clip-test harness; every gate ships w/ a known-bad fixture|PLAN §7.5
 T8|.|M4: custom animation sampler + shared bone texture, layers, D10 body-shape corrections|PLAN §8.4
@@ -128,6 +128,12 @@ T18|x|answers round 3: agent-authored assets; clip feet when measured covered (r
 T19|~|M0.1 style frames: S1 all-vertex-color / S2 geometry + painted face / S3 texture detail × flat/smooth; one test character; shared lighting rig `src/render/lighting.ts`; contact sheet + live page `?style=`; user picks. built 2026-10-13 → `docs/m0/style-frames.png`. user pick 2026-10-13: **S1 smooth** (all vertex color, smooth normals) except lips → fixed (B4); S2/S3 + flat stay as viewer options|PLAN §5.5 V16
 T20|x|M0.2 crowd bench (branch `m0-bench`): placeholder chars @ §8.3 budgets; A Babylon-native / B custom sampler + shared bone texture / C + tiering; `Plaza-100` + `Meadow-100` + `empty` floor; scaled gates on UHD 770 + P-cores. result: C passes laptop (net), phone total net ✓ but `cpu.submit` ✗ → budget split revision proposed (R20); A fails everywhere|V7 V8 V9 V10 V11 V12 V13 V14 V15 R20–R25
 T21|x|adopt CPU split anim ≤1.5 · upload+cull ≤2 · submit ≤3.5 (net of floor), total 7 unchanged; `bench/regrade.mjs` re-grades stored results → C PASS all 4 scene×tier net; tightest Plaza-phone upload+cull 1.32/1.40|R25 V11
+T22|~|M1.1 base body (P1): MakeHuman CC0 proxy `female1605` (1605 v / 3168 tris, human-designed quads, bound to the MH base → every MH target transfers exactly) vs M0 weighted decimation; ages 1→70 from the one topology (first look 2026-10-13: toddler/child proportions read right); S1 regions; cut-line rings picked from existing proxy rings|PLAN §5.1 §5.3 §5.6
+T23|.|M1.2 rig (P4): MPFB `game_engine` 53 bones (UE names) + jaw, eyes, upper/lower-arm twist; weights from MH via the proxy binding (≤4, normalized); joints per body from per-target joint deltas; canonical rest rotations from the MH default body, per-body = translations only|PLAN §5.4 §7.3 D6
+T24|.|M1.3 animation (P6), worktree agent: idle / walk / sit / arms-up / wave retargeted onto `game_engine`; Mesh2Motion vs KayKit vs CMU; rotation-only + pelvis translation|PLAN §3.4 P6
+T25|.|M1.4 sliders (~20) + faces (P2): region + face targets transferred from MH; 3 distinct identities; geometric eyes/brows/lips (S1)|PLAN §5.2 §5.5
+T26|.|M1.5 garments (P3): tee, jeans, jacket (+ sneakers) authored on layer shells, surface-bound (D3), inherited weights (D4), measured band hiding (D1), recolor channels by face|PLAN §6 §7.3
+T27|.|M1.6 sign-off page: sliders + age + outfits + clips + recolor, contact sheets in motion → user sign-off (M1 gate)|PLAN §11
 
 ## §B BUGS
 

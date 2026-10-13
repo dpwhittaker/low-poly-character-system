@@ -54,7 +54,13 @@ def render_views(objs, out_prefix, views=("front", "three_quarter", "side"), eng
         cam = bpy.data.objects.new("PreviewCam", bpy.data.cameras.new("PreviewCam"))
         scene.collection.objects.link(cam)
     cam.data.type = "ORTHO"
-    cam.data.ortho_scale = height * 1.12 / (1 if aspect < 1 else aspect)
+    # ortho_scale spans the image's longer side. Fit the subject's height and its widest
+    # horizontal extent (aspect > 1 used to render square and crop, 2026-10-13).
+    width = max(hi.x - lo.x, hi.y - lo.y)
+    if aspect >= 1:
+        cam.data.ortho_scale = max(height * 1.12 * aspect, width * 1.06)
+    else:
+        cam.data.ortho_scale = max(height * 1.12, width * 1.06 / aspect)
     scene.camera = cam
     scene.render.engine = engine
     if engine == "CYCLES":
@@ -75,7 +81,7 @@ def render_views(objs, out_prefix, views=("front", "three_quarter", "side"), eng
         scene.cycles.samples = 48
         scene.cycles.use_denoising = True
         scene.cycles.max_bounces = 4
-    scene.render.resolution_x = int(res * aspect) if aspect < 1 else res
+    scene.render.resolution_x = int(res * aspect)
     scene.render.resolution_y = res
     scene.render.film_transparent = False
     out = []
