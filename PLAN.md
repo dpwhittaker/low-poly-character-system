@@ -935,6 +935,64 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
   mode would cost about **1.9 MB of float texture per character** (3k verts × 20 targets),
   and changing the active-influence count recompiles shaders. Baking is mandatory.
 
+### 8.2b M0 crowd bench, measured (2026-10-13)
+
+`npm run bench`, branch `m0-bench`. Results are in `bench/results/2026-10-13/` (JSON per
+run, `summary.md`, screenshots).
+
+**Setup:** 100 placeholder characters at exactly the §8.3 budgets (3500/1400/500/150 tris,
+60/30/18 bones). Each character has unique buffers and proportions and 2-layer blended
+animation.
+
+**Paths:**
+- **A:** Babylon native, with a Skeleton and AnimationGroups.
+- **B:** a custom sampler writing one shared bone texture.
+- **C:** B plus tiering (LOD, LOD0 cap 14, animation LOD, skeleton LOD, far-tier
+  batches, blob shadows).
+
+**Method:** p95, measured on the UHD 770 and P-cores, then scaled (CPU ×2.5 / ×5, GPU ×2
+/ ×4).
+
+| Scene / tier | A CPU → scaled | B CPU → scaled | C CPU → scaled (net of floor) | GPU scaled A / B / C | draws A / B / C |
+|---|---|---|---|---|---|
+| Plaza, laptop | 8.15 → **20.4 ms** | 2.03 → **5.1** | 1.14 → **2.85** (2.0) | 5.1 / 3.4 / 2.4 | 38 / 36 / 13 |
+| Plaza, phone | 8.45 → **42.3** | 1.84 → **9.2** | 1.10 → **5.5** (3.8) | 6.8 / 4.8 / 4.5 | 20 / 19 / 13 |
+| Meadow, laptop | 7.97 → **19.9** | 1.93 → **4.8** | 1.11 → **2.8** (1.9) | 3.8 / 2.7 / 1.5 | 52 / 52 / 6 |
+| Meadow, phone | 8.97 → **44.9** | 1.72 → **8.6** | 0.97 → **4.9** (3.2) | 3.9 / 3.1 / 2.6 | 17 / 17 / 6 |
+
+Gate limits, with 30 % headroom: CPU ≤ 4.9 ms total (anim ≤ 2.1, upload+cull ≤ 1.4,
+submit ≤ 1.4); GPU ≤ 9.3 ms.
+
+**What the numbers say:**
+- **GPU is not the constraint.** Every path passes GPU at every tier with placeholder
+  shading. The real material, textures and faces will eat into that, so re-measure at
+  M2.
+- **A → B: 4–5× less CPU.**
+  - **The cause:** Babylon's per-channel animation evaluation with 2 weighted groups
+    costs about 6.5–8 ms raw for 100 × 60 bones. B's typed-array sampler plus compose
+    costs about 1.1 ms raw.
+  - **The shared texture:** one 302 KB upload per frame (about 0.1 ms raw) replaces 100
+    per-skeleton uploads.
+- **B → C: another ~1.7× CPU, 3–9× fewer draws.**
+  - **Animation:** about 0.06–0.21 ms raw, from LOD, staggering and skeleton LOD.
+  - **Uploads:** only dirty rows are uploaded.
+  - **Mesh traversal:** Babylon is handed only the selected meshes (SPEC V15). In interim
+    CDP-throttled runs that took C from 4.1 to 3.1 ms. That method was later invalidated
+    (SPEC B3), so treat it as the direction of the effect, not its size.
+- **C passes the laptop tier** net of the engine floor; strict, only `cpu.submit` fails.
+  **At phone tier C passes the total net (3.2–3.8 ≤ 4.9)**, but `cpu.submit` misses:
+  about 0.4 ms raw, × 5 = 2.0 ms, against 1.4. Strict, the total also misses (4.9–5.5),
+  because the floor (about 2.4 ms at ×5) is counted in it.
+- **The budget split needs revising, not the total.**
+  - **Animation:** C spends at most 0.9 ms of its 3 ms animation budget.
+  - **Submission:** Babylon's `scene.render()` takes about 0.35 ms raw for zero characters
+    and about 0.4 ms more for C's 6–13 draws.
+  - **Proposed split:** total ≤ 7 ms at the tier (unchanged); animation ≤ 1.5;
+    upload + cull ≤ 1.5; submission ≤ 3 net of the engine floor. The floor itself is
+    booked to the world/engine share.
+  - **Further submit savings, if phones stay tight:** batch LOD1 like the far tiers
+    (Plaza has 6 LOD1 draws), and use WebGPU snapshot rendering where available (§8.1).
+
 ### 8.3 Budgets
 
 | Item | Budget |
@@ -945,10 +1003,10 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
 | Total character triangles in view | ≤ 120k on tablets, ≤ 300k on laptops |
 | Bones | LOD0 ≈ 60 (fingers, face, twist; GPU cost only, CPU kept low by §8.4) · LOD1 ≈ 30 · LOD2 ≈ 18 |
 | Influences per vertex | 4 at LOD0, 2 at LOD1+ |
-| Draw calls, characters only | near tier: 1 per character; far tier: batched (§8.4 #4). **≤ 60 on tablets, ≤ 120 on laptops** |
+| Draw calls, characters only | near tier: 1 per character; far tier: batched (§8.4 #4). **≤ 60 on tablets, ≤ 120 on laptops**. Measured (M0, path C): 13 in Plaza-100, 6 in Meadow-100 |
 | Texture memory, all characters | ≤ 32 MB: shared atlases (≈ 1–2 MB with mips), one shared bone texture (100 × 60 × 3 texels ≈ 290 KB), no per-character textures |
 | Animation update rate | near 60 Hz (≤ 4 active blends) · mid 30 Hz staggered · far 10–15 Hz · off-screen 0 |
-| CPU per frame (tablet, 30 fps) | animation ≤ 3 ms · skinning upload + culling ≤ 2 ms · draw submission ≤ 2 ms · game logic ≤ 4 ms · ≥ 30 % headroom |
+| CPU per frame (tablet, 30 fps) | character system ≤ 7 ms total · game logic ≤ 4 ms · ≥ 30 % headroom. Split: ~~animation ≤ 3 · upload+cull ≤ 2 · submission ≤ 2~~ → **proposed after M0 measurement: animation ≤ 1.5 · upload+cull ≤ 1.5 · submission ≤ 3 net of the engine floor** (path C measured at phone tier: 0.9 / 1.3 / 2.0 ms; floor ≈ 2.4 ms booked to world/engine; §8.2b) |
 | GPU per frame | characters ≤ 40 % · world 40 % · post/UI ≤ 20 % · plus 30–40 % thermal margin on tablets |
 | Resolution | `limitDeviceRatio` 1–1.5 on tablets, plus dynamic resolution driven by frame time |
 
@@ -968,15 +1026,15 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
    - **Shading:** a material plugin does the skinning from that texture, with a
      per-character row offset.
 
-   Expected gain is several times over Babylon's path, which spends its time on
-   per-channel evaluation, `computeWorldMatrix` and per-skeleton uploads (§8.2). This is
-   the M0 benchmark's main question. **Clip sampling is shared** across characters in the
+   Measured at M0 (§8.2b): **4–5× less character CPU than Babylon's path** (A → B),
+   which spends its time on per-channel evaluation, `computeWorldMatrix` and
+   per-skeleton uploads. **Clip sampling is shared** across characters in the
    same state and phase; the per-character work is only the cheap hierarchy compose.
 4. **Batch the far tier.** Because skinning reads a shared texture by character index,
    several far characters' LOD2 meshes can be merged into **one draw call** (the
    character index is a vertex attribute). Batches are rebuilt only when membership
    changes. Spatial clusters keep culling useful. 80 far characters become about 5–8
-   draws.
+   draws. **Measured:** Meadow-100 went from 52 draws (A/B) to 6 (C).
    - The alternative is Babylon's `BakedVertexAnimationManager`: baked bone matrices on
      thin instances.
    - It bakes *proportions* into the matrices, so every body needs its own bake, and it
@@ -1033,10 +1091,24 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
       flagged as one.
     - **Fill rate:** runs at the target devices' real pixel counts (a 1080×2340 phone at
       the capped DPR; a 1366×768 laptop).
-  - **CPU gate via CDP `Emulation.setCPUThrottlingRate`:** **2.5×** for the budget laptop
-    (i7-14700K vs i5-8250U-class single-thread) and **5×** for the phone, tablet and
-    low-end Chromebook tier. Verified 2026-10-12: rate 4 gave a measured 3.4–4.2× slowdown
-    on a JS loop. The calibration loop is re-run at M0 to pin the rates.
+  - **CPU gate (revised 2026-10-13, measured):** CPU ms are measured **unthrottled** and
+    multiplied by **2.5×** for the budget laptop (i7-14700K vs i5-8250U-class
+    single-thread) and **5×** for the phone, tablet and low-end Chromebook tier, the same
+    way GPU is scaled.
+    - **Why not CDP throttling:** the original plan used CDP
+      `Emulation.setCPUThrottlingRate`, and the M0 bench proved it unusable here. At
+      nominal 2.5×/5× it slowed sub-ms per-frame work only **0.6–1.2×**; path A's long
+      frames slowed 1.6–2.7×; and a throttled empty scene measured *faster* than raw.
+      Chrome suspends the main thread in coarse slices, so short intervals mostly miss the
+      pauses. A throttled gate would pass anything light (SPEC B3, V14).
+      `--cdp-throttle` remains as an informational flag.
+    - **Pinning:** the runner and Chrome are pinned to the **P-cores** (`taskset 0-15`;
+      CPUs 16–27 are E-cores). Unpinned runs of the same scene differed by up to ~2.8×;
+      pinned runs repeat within ~7 %. The load average is recorded with every run,
+      because other sessions share this machine.
+    - **Engine floor:** the runner also measures an `empty` scene per tier: `scene.render()`
+      with zero characters, about 0.34 ms p50 raw. A "net" verdict subtracts it, because
+      the world pays it regardless of characters. The strict verdict is still reported.
   - **Margin:** every scaled gate must pass with **≥ 30 % headroom**, because the ratios are
     estimates, not measurements.
   - **Regression:** the same harness runs on every change. It is fast enough on the iGPU.
