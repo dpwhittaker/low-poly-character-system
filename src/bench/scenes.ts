@@ -6,7 +6,7 @@
 import { mulberry32, range, type Rng } from './rng.ts';
 import { BASE_CLIPS, GESTURE, CLIP_FPS, type StateId } from './clips.ts';
 
-export type SceneName = 'plaza' | 'meadow' | 'single';
+export type SceneName = 'plaza' | 'meadow' | 'single' | 'empty';
 
 export interface CharSpec {
   id: number;
@@ -145,8 +145,15 @@ function single(seed: number): SceneSpec {
   };
 }
 
+/** No characters: the plaza ground + camera only. Measures Babylon's fixed per-frame cost (the "floor" under every path). */
+function empty(seed: number): SceneSpec {
+  const p = plaza(seed);
+  return { ...p, name: 'empty', chars: [] };
+}
+
 export function makeScene(name: SceneName, seed: number): SceneSpec {
   if (name === 'plaza') return plaza(seed);
   if (name === 'meadow') return meadow(seed);
+  if (name === 'empty') return empty(seed);
   return single(seed);
 }

@@ -21,6 +21,7 @@ const WARMUP = +(q.get('warmup') ?? 120);
 const DRAIN = +(q.get('drain') ?? 24);
 const SEED = +(q.get('seed') ?? 1234);
 const SHADOWS = q.get('shadows') !== '0';
+const HOLD = q.has('hold') ? +(q.get('hold') as string) : -1; // freeze the camera at this fraction of the path (screenshots)
 
 async function run() {
   const canvas = document.getElementById('c') as HTMLCanvasElement;
@@ -48,7 +49,8 @@ async function run() {
   const tSetup0 = performance.now();
   const chars = buildChars(spec, pathName === 'C' ? [0, 1, 2, 3] : [0]);
   let rt: PathRuntime;
-  if (pathName === 'A') rt = createPathA(scene, spec, chars);
+  if (chars.length === 0) rt = { name: pathName, step: () => ({ animMs: 0, uploadCullMs: 0, uploadMs: 0 }), stats: () => ({ visibleChars: 0, visibleTris: 0, lod: [0, 0, 0, 0], composed: 0 }) };
+  else if (pathName === 'A') rt = createPathA(scene, spec, chars);
   else if (pathName === 'B') rt = createPathB(scene, spec, chars);
   else rt = createPathC(scene, spec, chars, { shadows: SHADOWS, camera: cam });
   await scene.whenReadyAsync();
@@ -65,7 +67,7 @@ async function run() {
   const dbg = gl.getExtension('WEBGL_debug_renderer_info');
   const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown';
 
-  const S: Record<string, number[]> = { cpuChar: [], anim: [], uploadCull: [], submit: [], renderWall: [], draws: [], activeTris: [], visibleTris: [], visibleChars: [], composed: [], gpu: [], lod0: [], lod1: [], lod2: [], lod3: [] };
+  const S: Record<string, number[]> = { cpuChar: [], anim: [], uploadCull: [], upload: [], submit: [], renderWall: [], draws: [], activeTris: [], visibleTris: [], visibleChars: [], composed: [], gpu: [], lod0: [], lod1: [], lod2: [], lod3: [] };
   const perSegment: Record<string, Record<string, number[]>> = {};
   let gpuCount = ei.gpuFrameTimeCounter.count;
   let frame = 0;
@@ -74,7 +76,7 @@ async function run() {
   await new Promise<void>((resolve) => {
     engine.runRenderLoop(() => {
       const mf = frame - WARMUP; // measurement frame index (camera path)
-      const pose = spec.camera(Math.max(0, Math.min(FRAMES - 1, mf)), FRAMES);
+      const pose = spec.camera(HOLD >= 0 ? HOLD * FRAMES : Math.max(0, Math.min(FRAMES - 1, mf)), FRAMES);
       cam.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
       cam.setTarget(new Vector3(pose.target[0], pose.target[1], pose.target[2]));
       cam.getViewMatrix(true);
@@ -92,6 +94,7 @@ async function run() {
           cpuChar: (t1 - t0) + (t2 - t1),
           anim: isA ? si.animationsTimeCounter.current : st.animMs,
           uploadCull: isA ? si.activeMeshesEvaluationTimeCounter.current : st.uploadCullMs,
+          upload: st.uploadMs,
           submit: isA ? si.renderTimeCounter.current : t2 - t1,
           renderWall: t2 - t1,
           draws: si.drawCallsCounter.current,

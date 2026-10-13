@@ -7,15 +7,15 @@
 //  • blob shadows: one thin-instanced quad draw
 //  • draw-distance fade: dithered discard between fade[0] and fade[1] metres; hidden beyond
 
-import { BoundingInfo, Color3, Constants, Matrix, MeshBuilder, RawTexture, StandardMaterial, Vector3, type Camera, type Mesh, type Scene } from '@babylonjs/core';
+import { BoundingInfo, Color3, Constants, MeshBuilder, RawTexture, StandardMaterial, Vector3, type Camera, type Mesh, type Scene } from '@babylonjs/core';
 import { PoseCache, composeCharacter, writeRoot, zeroSlot } from './sampler.ts';
 import { BASE_CLIPS, GESTURE } from './clips.ts';
 import { LOD_SKELETON } from './skeleton.ts';
 import { LOD_TRIS, type MeshData } from './geometry.ts';
 import { charPose, type SceneSpec } from './scenes.ts';
-import { meshFromData, constantAttr, FrustumTester, type BenchChar, type PathRuntime, type FrameStats } from './common.ts';
+import { meshFromData, constantAttr, FrustumTester, ActiveList, type BenchChar, type PathRuntime, type FrameStats } from './common.ts';
 import { texSkinMaterial } from './shaders.ts';
-import { createBoneTexture, OVERLAY_WEIGHT } from './pathB.ts';
+import { createBoneTexture, uploadDirtyRows, OVERLAY_WEIGHT } from './pathB.ts';
 
 /** minimum on-screen height (render px) for LOD k */
 export const LOD_PX = [260, 110, 36, 8] as const;
@@ -42,6 +42,9 @@ export function createPathC(scene: Scene, spec: SceneSpec, chars: BenchChar[], o
   const matBatch = texSkinMaterial(scene, tex, { influences: 2, batch: true, fade });
   const cache = new PoseCache(BASE_CLIPS, GESTURE, OVERLAY_WEIGHT);
   const frustum = new FrustumTester();
+  const statics = scene.meshes.slice(); // ground etc., created before the characters
+  const active = new ActiveList();
+  active.install(scene);
 
   const near: Mesh[][] = [[], []];
   chars.forEach((c, i) => {
@@ -121,16 +124,18 @@ export function createPathC(scene: Scene, spec: SceneSpec, chars: BenchChar[], o
     blob.material = sm;
     blob.isPickable = false;
     blob.alwaysSelectAsActiveMesh = true;
-    blobBuf = new Float32Array(16 * n);
+    blobBuf = new Float32Array(16 * n); // scale 0 = every shadow collapsed until shown
+    for (let i = 0; i < n; i++) blobBuf[i * 16 + 15] = 1;
     blob.thinInstanceSetBuffer('matrix', blobBuf, 16, false);
+    statics.push(blob);
   }
 
   const lod = new Int8Array(n).fill(-1);
+  const dirty = new Uint8Array(n).fill(1);
   const target = new Int8Array(n);
   const px = new Float32Array(n);
   const due = new Int32Array(n);
   const camPos = new Vector3();
-  const tmpM = new Matrix();
   let stats: FrameStats = { visibleChars: 0, visibleTris: 0, lod: [0, 0, 0, 0], composed: 0 };
   const engine = scene.getEngine();
   const cand: number[] = [];
@@ -161,6 +166,8 @@ export function createPathC(scene: Scene, spec: SceneSpec, chars: BenchChar[], o
         for (let j = LOD0_CAP; j < cand.length; j++) target[cand[j]] = 1;
       }
       let nd = 0;
+      active.reset();
+      for (const m of statics) active.push(m);
       const counts: [number, number, number, number] = [0, 0, 0, 0];
       let visTris = 0;
       for (let i = 0; i < n; i++) {
@@ -168,40 +175,51 @@ export function createPathC(scene: Scene, spec: SceneSpec, chars: BenchChar[], o
         const L = target[i], prev = lod[i];
         near[0][i].isVisible = L === 0;
         near[1][i].isVisible = L === 1;
-        if (L === 0 || L === 1) writeRoot(data, i, 0, c.x, 0, c.z, c.yaw);
-        if (L === 2) writeRoot(data, i, 1, c.x, 0, c.z, c.yaw); else zeroSlot(data, i, 1);
-        if (L === 3) writeRoot(data, i, 2, c.x, 0, c.z, c.yaw); else zeroSlot(data, i, 2);
+        // Roots: rewrite only what moved or changed tier (static characters cost nothing here).
+        const moved = c.spec.walk !== undefined;
         if (L !== prev) {
+          dirty[i] = 1;
+          if (prev === 2) zeroSlot(data, i, 1);
+          if (prev === 3) zeroSlot(data, i, 2);
           if (prev >= 2) batchCount[cellOf[i]]--;
           if (L >= 2) batchCount[cellOf[i]]++;
         }
+        if (L >= 0 && (moved || L !== prev)) { writeRoot(data, i, L <= 1 ? 0 : L - 1, c.x, 0, c.z, c.yaw); dirty[i] = 1; }
+        if (L === 0) active.push(near[0][i]);
+        else if (L === 1) active.push(near[1][i]);
         if (L >= 0) {
           counts[L]++;
           visTris += LOD_TRIS[L];
           if (L !== prev || (frame + i) % ANIM_PERIOD[L] === 0) due[nd++] = i;
         }
         lod[i] = L;
-        if (blobBuf) {
-          const s = L >= 0 ? 0.75 * c.skel.props.girth : 0;
-          Matrix.ScalingToRef(s, 1, s, tmpM);
-          tmpM.setTranslationFromFloats(c.x, 0.02, c.z);
-          tmpM.copyToArray(blobBuf, i * 16);
+        if (blobBuf && (moved || (L >= 0) !== (prev >= 0))) {
+          // Babylon row-vector matrix: scale on the diagonal, translation in 12..14.
+          const s = L >= 0 ? 0.75 * c.skel.props.girth : 0, o = i * 16;
+          blobBuf[o] = s; blobBuf[o + 5] = L >= 0 ? 1 : 0; blobBuf[o + 10] = s; blobBuf[o + 15] = 1;
+          blobBuf[o + 12] = c.x; blobBuf[o + 13] = 0.02; blobBuf[o + 14] = c.z;
         }
       }
-      for (let b = 0; b < batches.length; b++) batches[b].isVisible = batchCount[b] > 0;
+      for (let b = 0; b < batches.length; b++) {
+        const on = batchCount[b] > 0;
+        batches[b].isVisible = on;
+        if (on) active.push(batches[b]);
+      }
       const t1 = performance.now();
       for (let j = 0; j < nd; j++) {
         const i = due[j];
         const s = chars[i].spec;
         const pose = cache.get(frame, time, s.state, s.phase, s.ophase, PoseCache.key(s.state, s.bucket, s.obucket));
         composeCharacter(pose, chars[i].skel, LOD_SKELETON[lod[i]], data, i);
+        dirty[i] = 1;
       }
       const t2 = performance.now();
-      tex.update(data);
+      uploadDirtyRows(scene, tex, data, dirty);
+      const tu = performance.now();
       if (blob) blob.thinInstanceBufferUpdated('matrix');
       const t3 = performance.now();
       stats = { visibleChars: counts[0] + counts[1] + counts[2] + counts[3], visibleTris: visTris, lod: counts, composed: nd };
-      return { animMs: t2 - t1, uploadCullMs: (t1 - t0) + (t3 - t2) };
+      return { animMs: t2 - t1, uploadCullMs: (t1 - t0) + (t3 - t2), uploadMs: tu - t2 };
     },
     stats: () => stats,
   };

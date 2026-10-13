@@ -79,7 +79,7 @@ export function createPathA(scene: Scene, _spec: SceneSpec, chars: BenchChar[]):
         roots[i].position.set(x, 0, z);
         roots[i].rotation.y = yaw;
       }
-      return { animMs: 0, uploadCullMs: 0 };
+      return { animMs: 0, uploadCullMs: 0, uploadMs: 0 };
     },
     stats(): FrameStats {
       const active = scene.getActiveMeshes();

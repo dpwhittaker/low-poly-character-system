@@ -12,10 +12,11 @@ import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { loadavg, cpus } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
-import { TIERS, grade, isGradableRenderer } from '../src/bench/gates.ts';
+import { TIERS, grade, gradeNet, isGradableRenderer } from '../src/bench/gates.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist-bench');
@@ -24,7 +25,7 @@ const CHROME_ARGS = ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=vulk
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm', '.json': 'application/json', '.png': 'image/png' };
 
 function parseArgs(argv) {
-  const a = { scenes: ['plaza', 'meadow'], paths: ['A', 'B', 'C'], tiers: ['raw', 'laptop', 'phone'], frames: 600, warmup: 120, build: true, selftest: false, out: null, seed: 1234 };
+  const a = { scenes: ['plaza', 'meadow'], paths: ['A', 'B', 'C'], tiers: ['raw', 'laptop', 'phone'], frames: 600, warmup: 120, build: true, selftest: false, out: null, seed: 1234, cdpThrottle: false, shadows: true };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i], v = argv[i + 1];
     if (k === '--scenes') { a.scenes = v.split(','); i++; }
@@ -36,6 +37,8 @@ function parseArgs(argv) {
     else if (k === '--out') { a.out = v; i++; }
     else if (k === '--no-build') a.build = false;
     else if (k === '--selftest') a.selftest = true;
+    else if (k === '--cdp-throttle') a.cdpThrottle = true; // informational only: such runs are never graded (gates.ts)
+    else if (k === '--no-shadows') a.shadows = false; // diagnostic: path C without blob shadows
     else throw new Error(`unknown arg ${k}`);
   }
   return a;
@@ -65,20 +68,38 @@ export async function serve() {
   throw new Error('no free port in 5390–5399');
 }
 
+/**
+ * Pin this process (and so the Chrome it launches) to the P-cores. The i7-14700K
+ * is hybrid: CPUs 0–15 are P-cores (5.5 GHz), 16–27 E-cores (4.3 GHz, lower IPC).
+ * Unpinned, the same run measured up to ~2.8× apart depending on where the
+ * renderer landed; the tier CPU factors (×2.5 / ×5) are defined against a P-core.
+ */
+export const P_CORES = '0-15';
+export function pinToPCores() {
+  const r = spawnSync('taskset', ['-a', '-cp', P_CORES, String(process.pid)], { encoding: 'utf8' });
+  return r.status === 0 ? P_CORES : `unpinned (${(r.stderr || '').trim()})`;
+}
+let affinity = null;
+
 export async function launch() {
+  affinity ??= pinToPCores();
   return chromium.launch({ headless: true, env: { ...process.env, VK_ICD_FILENAMES: INTEL_ICD }, args: CHROME_ARGS });
 }
 
-export async function runOne(browser, port, { scene, path, tier, frames, warmup, seed, shadows = true, screenshot = null }) {
+export async function runOne(browser, port, { scene, path, tier, frames, warmup, seed, shadows = true, screenshot = null, hold = null, cdpThrottle = false }) {
   const t = TIERS[tier];
   const ctx = await browser.newContext({ viewport: { width: t.viewport.width, height: t.viewport.height }, deviceScaleFactor: t.viewport.dpr });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  const cdp = await ctx.newCDPSession(page);
-  await cdp.send('Emulation.setCPUThrottlingRate', { rate: t.cpuThrottle });
-  const qs = new URLSearchParams({ scene, path, frames: String(frames), warmup: String(warmup), seed: String(seed), shadows: shadows ? '1' : '0' });
+  const rate = cdpThrottle ? t.cdpThrottle : 1;
+  if (rate !== 1) {
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate });
+  }
+  const loadBefore = loadavg()[0];
+  const qs = new URLSearchParams({ scene, path, frames: String(frames), warmup: String(warmup), seed: String(seed), shadows: shadows ? '1' : '0', ...(hold === null ? {} : { hold: String(hold) }) });
   await page.goto(`http://127.0.0.1:${port}/index.html?${qs}`, { waitUntil: 'load', timeout: 300000 });
   await page.waitForFunction(() => window.__benchResult || window.__benchError, null, { timeout: 1800000, polling: 1000 });
   const err = await page.evaluate(() => window.__benchError);
@@ -87,8 +108,12 @@ export async function runOne(browser, port, { scene, path, tier, frames, warmup,
   if (screenshot) await page.screenshot({ path: screenshot });
   await ctx.close();
   result.tier = tier;
-  result.cpuThrottle = t.cpuThrottle;
+  result.cpuThrottle = rate;
+  result.cpuScale = t.cpuScale;
   result.gpuScale = t.gpuScale;
+  // Other sessions share this box; a busy machine inflates CPU numbers, so record the load.
+  result.load = { before: loadBefore, after: loadavg()[0], cores: cpus().length };
+  result.affinity = affinity;
   result.grade = grade(result, t);
   result.pageErrors = errors;
   return result;
@@ -96,12 +121,13 @@ export async function runOne(browser, port, { scene, path, tier, frames, warmup,
 
 const f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : 'n/a');
 
+const verdictOf = (g) => !g ? '—' : !g.valid ? `INVALID (${g.reason})` : !g.graded ? 'info' : g.pass ? 'PASS' : `FAIL (${g.gates.filter((x) => !x.pass).map((x) => x.name).join(', ')})`;
+
 export function summaryTable(results) {
-  const rows = ['| scene | path | tier | CPU p95 ms (anim / upl+cull / submit) | GPU p95 ms (UHD 770 → scaled) | draws p50 | tris p50 (visible) | LOD mix p50 | verdict |', '|---|---|---|---|---|---|---|---|---|'];
+  const rows = ['| scene | path | tier | CPU p95 ms measured → scaled (anim / upl+cull / submit, measured) | GPU p95 ms UHD 770 → scaled | draws p50 | tris p50 (visible) | LOD mix p50 | load | strict verdict | net of engine floor |', '|---|---|---|---|---|---|---|---|---|---|---|'];
   for (const r of results) {
-    const s = r.summary, g = r.grade;
-    const verdict = !g.valid ? `INVALID (${g.reason})` : !g.graded ? 'info' : g.pass ? 'PASS' : `FAIL (${g.gates.filter((x) => !x.pass).map((x) => x.name).join(', ')})`;
-    rows.push(`| ${r.scene} | ${r.path} | ${r.tier} | ${f2(s.cpuChar.p95)} (${f2(s.anim.p95)} / ${f2(s.uploadCull.p95)} / ${f2(s.submit.p95)}) | ${f2(s.gpu.p95)} → ${f2(s.gpu.p95 * r.gpuScale)} | ${s.draws.p50} | ${Math.round(s.activeTris.p50)} (${Math.round(s.visibleTris.p50)}) | ${[s.lod0.p50, s.lod1.p50, s.lod2.p50, s.lod3.p50].join('/')} | ${verdict} |`);
+    const s = r.summary;
+    rows.push(`| ${r.scene} | ${r.path} | ${r.tier} | ${f2(s.cpuChar.p95)} → ${f2(s.cpuChar.p95 * r.cpuScale)} (${f2(s.anim.p95)} / ${f2(s.uploadCull.p95)} / ${f2(s.submit.p95)}) | ${f2(s.gpu.p95)} → ${f2(s.gpu.p95 * r.gpuScale)} | ${s.draws.p50} | ${Math.round(s.activeTris.p50)} (${Math.round(s.visibleTris.p50)}) | ${[s.lod0.p50, s.lod1.p50, s.lod2.p50, s.lod3.p50].join('/')} | ${f2(r.load?.before)} | ${verdictOf(r.grade)} | ${r.scene === 'empty' ? 'floor' : verdictOf(r.gradeNet)} |`);
   }
   return rows.join('\n');
 }
@@ -135,15 +161,22 @@ async function main() {
   const results = [];
   try {
     for (const tier of a.tiers) {
+      // Engine floor: scene.render() with zero characters at this tier (see gradeNet).
+      const floor = await runOne(browser, port, { scene: 'empty', path: 'A', tier, frames: a.frames, warmup: a.warmup, seed: a.seed, cdpThrottle: a.cdpThrottle });
+      results.push(floor);
+      await writeFile(join(outDir, `empty-floor-${tier}.json`), JSON.stringify(floor, null, 2));
+      console.log(`floor/${tier}: cpu p50 ${f2(floor.summary.cpuChar.p50)} p95 ${f2(floor.summary.cpuChar.p95)} ms, submit p50 ${f2(floor.summary.submit.p50)}, gpu p50 ${f2(floor.summary.gpu.p50)}`);
       for (const scene of a.scenes) {
         for (const path of a.paths) {
           const t0 = Date.now();
           const shot = tier === 'raw' ? join(outDir, `${scene}-${path}.png`) : null;
-          const r = await runOne(browser, port, { scene, path, tier, frames: a.frames, warmup: a.warmup, seed: a.seed, screenshot: shot });
+          const r = await runOne(browser, port, { scene, path, tier, frames: a.frames, warmup: a.warmup, seed: a.seed, screenshot: shot, cdpThrottle: a.cdpThrottle, shadows: a.shadows });
+          r.floor = { cpuCharP50: floor.summary.cpuChar.p50, submitP50: floor.summary.submit.p50, renderWallP50: floor.summary.renderWall.p50, gpuP50: floor.summary.gpu.p50 };
+          r.gradeNet = gradeNet(r, floor, TIERS[tier]);
           results.push(r);
           await writeFile(join(outDir, `${scene}-${path}-${tier}.json`), JSON.stringify(r, null, 2));
           const g = r.grade;
-          console.log(`${scene}/${path}/${tier}: cpu p95 ${f2(r.summary.cpuChar.p95)} ms, gpu p95 ${f2(r.summary.gpu.p95)}×${r.gpuScale}, draws ${r.summary.draws.p50} → ${!g.valid ? 'INVALID ' + g.reason : !g.graded ? 'info' : g.pass ? 'PASS' : 'FAIL'} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+          console.log(`${scene}/${path}/${tier}: cpu p95 ${f2(r.summary.cpuChar.p95)}×${r.cpuScale} ms, gpu p95 ${f2(r.summary.gpu.p95)}×${r.gpuScale}, load ${f2(r.load.before)}, draws ${r.summary.draws.p50} → ${!g.valid ? 'INVALID ' + g.reason : !g.graded ? 'info' : g.pass ? 'PASS' : 'FAIL'} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
           for (const x of g.gates) if (g.graded && g.valid) console.log(`    ${x.pass ? 'PASS' : 'FAIL'} ${x.name}: ${f2(x.value)} ≤ ${f2(x.limit)}${x.note ? '  (' + x.note + ')' : ''}`);
         }
       }
@@ -152,7 +185,7 @@ async function main() {
     await browser.close();
     server.close();
   }
-  const md = `# M0 crowd bench — ${day}\n\nRenderer: ${results[0]?.renderer}\n\nGates (PLAN §8.5): p95 values; GPU = UHD 770 ms × tier scale ≤ ${f2(0.4 * 1000 / 30 * 0.7)} ms; CPU ≤ ${f2(7 * 0.7)} ms total (anim ≤ ${f2(3 * 0.7)}, upload+cull ≤ ${f2(2 * 0.7)}, submit ≤ ${f2(2 * 0.7)}) under the tier's CPU throttle — all with 30 % headroom. Tier "raw" is informational.\n\n${summaryTable(results)}\n`;
+  const md = `# M0 crowd bench — ${day}\n\nRenderer: ${results[0]?.renderer}\n\nGates (PLAN §8.5): p95 values measured unthrottled on this box, then scaled — CPU × 2.5 (laptop) / × 5 (phone), GPU (UHD 770) × 2 / × 4. Limits: GPU ≤ ${f2(0.4 * 1000 / 30 * 0.7)} ms; CPU ≤ ${f2(7 * 0.7)} ms total (anim ≤ ${f2(3 * 0.7)}, upload+cull ≤ ${f2(2 * 0.7)}, submit ≤ ${f2(2 * 0.7)}) — all with 30 % headroom. Tier "raw" is informational. "load" = 1-min load average when the run started (${cpus().length} threads; other sessions share this machine).\n\n"strict" grades absolute p95 values. "net of engine floor" grades the same gates after subtracting the \`empty\` scene's p50 (scene.render() with zero characters: clear, camera, ground, instrumentation), which the world pays regardless of characters (\`gradeNet\` in src/bench/gates.ts).\n\n${summaryTable(results)}\n`;
   await writeFile(join(outDir, 'summary.md'), md);
   console.log('\n' + summaryTable(results));
   console.log(`\nwrote ${outDir}`);

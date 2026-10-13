@@ -2,7 +2,7 @@
 // from the scene seed), Babylon mesh creation, frustum tests and the runtime
 // interface every path implements.
 
-import { Mesh, VertexData, VertexBuffer, Frustum, Plane, type Scene, type Camera } from '@babylonjs/core';
+import { Mesh, VertexData, VertexBuffer, Frustum, Plane, type AbstractMesh, type Scene, type Camera } from '@babylonjs/core';
 import { characterSkeleton, randomProportions, type CharacterSkeleton } from './skeleton.ts';
 import { buildCharacterLod, randomPalette, type MeshData, type Palette } from './geometry.ts';
 import { hashSeed, mulberry32 } from './rng.ts';
@@ -58,6 +58,22 @@ export interface StepTimes {
   animMs: number;
   /** LOD + culling + bone-texture upload + shadow buffer (B/C); 0 for A */
   uploadCullMs: number;
+  /** the bone-texture upload alone (part of uploadCullMs) */
+  uploadMs: number;
+}
+
+/**
+ * Babylon's active-mesh pass calls isReady()/LOD/world-matrix on EVERY mesh in
+ * the scene before it looks at isVisible, so ~200 parked per-character LOD
+ * meshes cost real CPU even when hidden. Paths B/C already cull and pick LODs
+ * themselves, so they hand Babylon only the meshes they selected this frame.
+ */
+export class ActiveList {
+  data: AbstractMesh[] = [];
+  length = 0;
+  reset() { this.length = 0; }
+  push(m: AbstractMesh) { this.data[this.length++] = m; }
+  install(scene: Scene) { scene.getActiveMeshCandidates = () => this; }
 }
 
 export interface FrameStats {
