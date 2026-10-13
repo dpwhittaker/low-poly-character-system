@@ -3,7 +3,11 @@
 Research and plan for a customizable character system for web 3D games
 (Babylon.js 8 + Havok + Vite + TypeScript), built for a sandbox MMO life-sim.
 
-> **Status:** plan v1, 2026-10-12. Nothing is built yet. This file holds the reasoning,
+> **Status:** plan v1.1, 2026-10-12. The user's answers are folded in (§12): the audience is
+> teen girls building families, so every age is in scope; test devices are named; the
+> camera ranges from close city scenes to open countryside. Babylon is upgraded to 9.30, and
+> Blender 5.2.2 + the official MCP server are installed and verified. No character code is
+> built yet. This file holds the reasoning,
 > research and sources; `SPEC.md` holds the decisions in compressed form and is the file
 > that gets updated as work proceeds. Where the two disagree, `SPEC.md` wins and this file
 > is stale.
@@ -16,8 +20,9 @@ Research and plan for a customizable character system for web 3D games
    no crowd work until the user signs off on a *rendered 3D* base body, three faces and
    three garments in motion (gate **M1**). Every earlier attempt in this workspace skipped
    this step, and that is where they failed (§2).
-2. **Author assets in Blender; TypeScript only assembles them.** Blender 5.0.1 runs
-   headless here with full `bpy` (verified, §3.2). Body *shape* comes from real anatomical
+2. **Author assets in Blender; TypeScript only assembles them.** Blender runs headless
+   here with full `bpy`: the apt 5.0.1, plus a pinned 5.2.2 LTS driven through the official
+   MCP server, both verified (§3.2, §3.5). Body *shape* comes from real anatomical
    reference data projected onto a low-poly topology designed for the job. Shape does not
    come from parametric ring lofts (that approach failed twice, §2).
 3. **One base mesh, one skeleton, one material, one draw call per character.** Every
@@ -25,17 +30,22 @@ Research and plan for a customizable character system for web 3D games
 4. **Sliders are morph targets plus a joint regressor, baked on the CPU when a character is
    assembled.** The skeleton is re-fitted to the morphed body. Animations are
    rotation-only, so they play on any proportions. **Zero morph targets at runtime.**
-5. **Garments follow the body by surface binding** computed at build time.
+5. **All ages, one system, families by inheritance.** Infant → elder share one topology
+   and one skeleton where the M1 probe proves it can (§5.6). A child's sliders are blended
+   from the parents' plus variation, so families resemble each other, and aging a
+   character keeps its identity. The audience is teen girls, so content rules are built
+   into the data, not left to moderation (§5.7).
+6. **Garments follow the body by surface binding** computed at build time.
    - Offsets live in the surface's local frame. Skirts and robes bind to a leg-bridged
      "robe proxy".
    - Skin weights are *inherited* from the surface underneath, never painted separately.
    - Each layer must stay inside a fixed offset shell.
    - Body hiding under clothes uses **authored cut-line bands whose hiding is measured,
      not declared**.
-6. **Recolor** uses greyscale shading times an R/G/B mask: **R = primary, G = accent,
+7. **Recolor** uses greyscale shading times an R/G/B mask: **R = primary, G = accent,
    B = detail**, the user's scheme from earlier projects. A per-character palette is
    indexed by slot. There are no per-item textures.
-7. **Crowd budget, tiered by distance.** Measured on this box, 100 characters on
+8. **Crowd budget, tiered by distance.** Measured on this box, 100 characters on
    Babylon's stock animation path would cost roughly 8–23 ms of CPU on target devices,
    which is too much.
    - **Animation:** our own sampler writes every character's bones into one shared
@@ -43,13 +53,14 @@ Research and plan for a customizable character system for web 3D games
    - **Mesh:** the far tier is batched into a few draw calls. Skeleton and mesh LODs
      follow a fixed budget (§8.3).
    - **Shadows:** blob shadows for the crowd.
-8. **Size.** The character core is ≤ 3 MB compressed. Items average ≤ 25 KB and stream on
+9. **Size.** The character core is ≤ 3 MB compressed. Items average ≤ 25 KB and stream on
    demand. An appearance descriptor is ≈ 150 bytes.
-9. **Clipping: defense in depth** (§7). It has ten structural defenses plus automated
+10. **Clipping: defense in depth** (§7). It has ten structural defenses plus automated
    stress-pose × body-extreme × outfit tests. Each test must be *proven able to fail*, and
    a human visual gate sits on top.
-10. **Thin vertical slice first.** One body, a handful of items and the full pipeline end
-    to end, measured on real budget hardware, before scaling content.
+11. **Thin vertical slice first.** One body, a handful of items and the full pipeline end
+    to end, measured on the user's devices with scaled gates (§8.5), before scaling
+    content.
 
 ---
 
@@ -60,10 +71,12 @@ Research and plan for a customizable character system for web 3D games
 | G1 | Deep body + face customization via sliders | slider count; each slider visibly changes silhouette/face at 3 m; all combinations valid | ≥ 30 body + ≥ 30 face sliders plus macro sliders (sex, weight, muscle, age, height); every combination passes §7 tests |
 | G2 | Hundreds of clothing pieces + accessories, mix-and-match | catalog entries; compatibility | ≥ 300 catalog entries from ~120 meshes (variants are data, §9); any item combination either fits or is auto-resolved by declared rules |
 | G3 | Recolor, up to 3 colors per item | channels per item | 3 independent channels per item (R primary, G accent, B detail), plus skin, hair and eye colors |
-| G4 | 100 unique characters on screen, budget laptops + midrange tablets | `Plaza-100` benchmark scene, fixed camera path | ≥ 30 fps on an Intel UHD 620-class laptop and a Mali-G57 / Adreno 6xx / Apple A13-class tablet; ≥ 60 fps desktop. Character system ≤ 40 % of frame time |
+| G4 | 100 unique characters on screen, budget laptops + midrange tablets | `Plaza-100` (city) and `Meadow-100` (countryside) benchmark scenes, fixed camera paths | ≥ 30 fps on an Intel UHD 620-class laptop and a Mali-G57 / Adreno 6xx / Apple A13-class tablet; ≥ 60 fps desktop. Character system ≤ 40 % of frame time. The user's devices are far stronger, so gates use scaled measurements (§8.5) |
 | G5 | Small game size | bytes over the wire | core (body, morphs, skeleton, animations, shaders) ≤ 3 MB compressed; average item ≤ 25 KB incl. LODs |
 | G6 | Quality bar | user sign-off on rendered 3D, every milestone | approved style frame; approved contact sheets; zero visible poke-through in the stress-pose suite |
 | G7 | MMO-ready | descriptor size; assembly time | descriptor ≤ 200 B; assembly ≤ 30 ms per character in a Web Worker on a budget laptop; results cached |
+| G8 | Families: every age, children that resemble their parents | age groups supported; inheritance | infant, toddler, child, teen, adult, elder; a child descriptor derived from two parents; aging keeps identity (§5.6) |
+| G9 | Safe for a teen audience | rules enforced on descriptors | bounded body sliders, a non-removable base layer, age-eligibility on every item and animation, validated server-side (§5.7) |
 
 ---
 
@@ -148,14 +161,15 @@ So the tool choice must turn precision into quality:
 | Tool | Status | What was verified |
 |---|---|---|
 | **Blender 5.0.1** (apt, `/usr/bin/blender`, Python 3.14.4, numpy 2.3.5) | ✅ works headless | `blender -b -P`: built a mesh, 2-bone armature, `ARMATURE_AUTO` heat weights (4 ms), shape key, keyframed action, color attribute. glTF export (Khronos I/O 5.0.21) produced `POSITION/NORMAL/TEXCOORD_0/COLOR_0/JOINTS_0/WEIGHTS_0`, 1 morph target, 1 skin, 1 animation. Renders: Workbench 0.5 s, EEVEE 6 s, **Cycles on CUDA (RTX 4080)** 143 s first run (one-time `nvcc` kernel build for `sm_89`, now cached), fast afterwards. No OptiX or OpenImageDenoise in the Debian build. Bundled add-ons include glTF, FBX and Rigify |
-| Babylon.js 8.56.2 under Node (`NullEngine`) | ✅ works | Loaded that GLB headlessly: skeleton (2 bones), morph target manager (1), animation group (6 channels). **Geometry gates can run as plain Node tests.** Note: pass a `Uint8Array`, not a `File` (Node has no `FileReader`) |
+| Babylon.js under Node (`NullEngine`) | ✅ works (tested on 8.56.2; the project is now on 9.30.0, smoke-tested in headless Chrome) | Loaded that GLB headlessly: skeleton (2 bones), morph target manager (1), animation group (6 channels). **Geometry gates can run as plain Node tests.** Note: pass a `Uint8Array`, not a `File` (Node has no `FileReader`) |
 | Babylon loader extensions | ✅ present | `EXT_meshopt_compression`, `KHR_mesh_quantization`, `KHR_draco_mesh_compression`, `KHR_texture_basisu`, `MSFT_lod`, `EXT_mesh_gpu_instancing`; `BakedVertexAnimationManager`, `MaterialPluginBase`. **No `KHR_meshopt_compression`**, so use the EXT variant |
 | Google Chrome 151 + Playwright browsers | ✅ installed | For real-WebGL screenshots and timing. Earlier projects found `--use-angle=vulkan` gives GPU rendering headless, 14× faster than SwiftShader |
 | `@gltf-transform/cli` 4.5.1, `gltfpack` 1.3.0, `meshoptimizer` 1.3.0 (npm) | ✅ available | The meshoptimizer JS API has `simplify`, `simplifyWithAttributes`, `simplifySloppy`, `simplifyPrune` and a remesher. The simplifier outputs **index buffers only**, so LODs share vertex buffers, skin weights and morphs survive, and runtime LOD generation is viable |
-| KTX-Software (`ktx`/`toktx`) | ⬜ not installed | Needed for KTX2 textures. GitHub release `.deb` v4.4.2 |
+| KTX-Software (`ktx`/`toktx`) | ⬜ not installed (install at M2) | Needed for KTX2 textures. GitHub release `.deb` v4.4.2 |
 | ComfyUI with Hunyuan3D 2.0/2.1, TRELLIS.2, UniRig, Make-It-Animatable | ✅ installed (shared GPU service) | Licences in §3.3. **Hunyuan3D is excluded** |
 | CUDA for PyTorch (`~/ml-env`) | ✅ works | `nvidia-smi` currently fails with a driver/library mismatch (userspace 595.91 vs kernel module 595.84; `/var/run/reboot-required` dated Oct 7). CUDA itself still works. A reboot will clear it |
-| Blender 5.2.2 LTS (official tarball) | ⬜ candidate | Pinned and portable, unaffected by apt upgrades. Adds meshopt export and faster animation export. Required by the official Blender MCP server (§3.5) |
+| **Blender 5.2.2 LTS** (official tarball, `~/opt/blender-5.2.2-linux-x64/`) | ✅ installed 2026-10-12 | SHA-256 verified against `blender-5.2.2.sha256`. Pinned and portable, unaffected by apt upgrades. Adds meshopt export and faster animation export. Hosts the MCP server (§3.5) |
+| **Blender Lab MCP v1.0.3** (`.mcp.json`, project scope) | ✅ verified end to end | Headless `--command blender_mcp` on `127.0.0.1:9876`. An MCP stdio handshake listed 26 tools; `execute_blender_code` round-trips in ~2 ms, and the scene persists between calls. Start/stop: `tools/blender-mcp.sh` |
 
 ### 3.3 Candidate tools per job, with licences
 
@@ -245,17 +259,23 @@ Options as of 2026-10-12:
 - It needs `--online-mode` in background mode, and must not be started with
   `--factory-startup`.
 
-**Proposed setup.** This needs the user's OK, because it installs software and changes
-Claude Code's MCP config:
+**Setup (done 2026-10-12, with the user's OK):**
 
-1. Unpack Blender 5.2.2 LTS to `~/opt/`.
-2. Install the MCP extension into that Blender.
-3. Run it as a systemd unit on `127.0.0.1` (house rule: no `nohup`).
-4. Register it at **project** scope with
-   `claude mcp add --scope project … blender -- uvx --from "git+https://projects.blender.org/lab/blender_mcp.git@v1.0.3#subdirectory=mcp" blender-mcp`.
-   Note that PyPI's `blender-mcp` is the ahujasid package, so it must come from git.
+1. Blender 5.2.2 LTS is unpacked to `~/opt/blender-5.2.2-linux-x64/`.
+2. The extension `mcp-1.0.3.zip` is installed with
+   `blender --online-mode -b --command extension install-file -r user_default --enable`.
+3. It runs headless under **nohup**, which the user allowed instead of systemd:
+   `tools/blender-mcp.sh start|stop|status`. It binds `127.0.0.1:9876` and logs to
+   `~/.local/state/blender-mcp/`. It does not survive a reboot, so run `start` again after
+   one.
+4. It is registered at **project** scope in `.mcp.json`. The command is
+   `uvx --from "git+https://projects.blender.org/lab/blender_mcp.git@v1.0.3#subdirectory=mcp" blender-mcp`,
+   because PyPI's `blender-mcp` is the ahujasid package. Its env sets `BLENDER_MCP_HOST`,
+   `BLENDER_MCP_PORT` and `BLENDER_PATH`.
 
-Probe P8 then measures whether it really is lower friction.
+New Claude sessions in this project load it after approving the project MCP server.
+Raw-socket clients must send `{"type": "execute", "code": …, "strict_json": true}`,
+null-byte terminated. Probe P8 still measures whether it really is lower friction.
 
 **Rule regardless of interface:** anything made interactively must end up reproducible.
 Either the `.blend` source is committed under `assets-src/`, or the steps are captured as
@@ -302,8 +322,9 @@ failure mode in §2.
   - identity: `id`, `slot`, `layer`;
   - geometry: mesh LODs; per-vertex *fit binding* and inherited skin weights. The binding
     is body or robe-proxy triangle(s), barycentrics, and a local-frame offset (§7.3 D3); a per-vertex recolor channel or mask UV; per-triangle region-band tags;
-  - rules: measured `hides` (body bands, plus bands of lower-layer items), `covers`, and
-    compatibility tags (hair class, tuck mode, collar/hood class, rigid islands);
+  - rules: measured `hides` (body bands, plus bands of lower-layer items), `covers`,
+    compatibility tags (hair class, tuck mode, collar/hood class, rigid islands), and **age
+    eligibility + content tags** (§5.7);
   - for accessories: an attach socket;
   - `bulk` (thickness per region, used by animation corrections, §7.3 D10);
   - default colors.
@@ -438,6 +459,78 @@ LOD0 body triangles are in the head.
 
 The alternative is painted-texture expressions, Animal-Crossing style. The M0 style frame
 settles which one is used.
+
+### 5.6 Ages and families
+
+The audience is teen girls who want to build families (user, 2026-10-12), so every age is
+in scope:
+
+| Group | Age-macro range | Notes |
+|---|---|---|
+| Infant | 0–1 | mostly held, carried, crawling; tiny clothing set |
+| Toddler | 1–3 | own gait clips; short limbs, big head |
+| Child | 4–12 | continuous within the group |
+| Teen → adult → elder | 13–90 | continuous; teen–elder **share one garment catalog** (as The Sims does) |
+
+- **One topology and one skeleton across all ages is the goal.** It gives one garment
+  pipeline, aging that keeps identity, and inheritance in a single slider space.
+  - MakeHuman's CC0 age macro already spans 1–90 years, so age proportions come from
+    data, not guesses.
+  - The risk is the infant and toddler end: head ≈ ¼ of height, no visible neck, and short
+    limbs that stretch the topology and its triangle distribution.
+  - So probe **P1 must build a toddler and a child from the same topology as the adult**.
+  - Fallback: a separate "small" frame for infant and toddler that keeps the bone names
+    and face sliders. That is the Sims 4 approach: infants and toddlers have their own
+    frames.
+- **Garments by age.** Every item declares the age groups it is eligible for.
+  - **Children** get their own catalog. An adult garment may be auto-fitted to a child
+    body as a *draft* (D3 binding, with offsets and rigid islands scaled by local body
+    scale, so a toddler's buttons are smaller). Drafts are promoted only after review.
+  - **Infants and toddlers** get a small dedicated set: onesies, overalls, sleepers.
+- **Animation by age.** Bone names are shared. Rotation-only clips play on any proportions
+  where the motion is the same; toddler walk, infant crawl and held poses are separate
+  clips.
+  - **Interactions between ages** pair two characters with root alignment plus
+    contact-point IK computed from both bodies' heights: carrying an infant on an arm
+    socket, holding hands, piggyback, hugging a child, reading together, pushing a
+    stroller.
+- **Inheritance ("make a family").**
+  - **Sliders:** `child.sliderᵢ = lerp(parentA.sliderᵢ, parentB.sliderᵢ, wᵢ) + noise(σᵢ)`,
+    with per-slider dominance weights and a sibling-specific seed. Siblings resemble their
+    parents and each other but are not clones.
+  - **Skin tone** blends in a perceptual space (OKLab). Hair and eye color, and discrete
+    traits such as hair texture and brow style, come from the parents by simple
+    probability rules.
+  - **Identity sliders are stored as deviations from the age-mean shape.** So "wide jaw,
+    big nose" at 5 maps to the same person at 40, and aging up is just moving the age
+    macro and swapping to age-eligible clothes.
+  - The descriptor stays ≈ 150 bytes; parent links live in game data, not in the
+    appearance.
+- **Testing:** clipping and quality suites run over **each age group's** envelope (§7.5).
+
+### 5.7 Audience and content rules (teen players)
+
+These rules live in the data and the assembler, so a modified client cannot break them for
+other players:
+
+- **A non-removable base layer.** Teen and older bodies always wear base underwear as a
+  layer-1 skin-paint region. Children and younger wear a base outfit. The assembler adds it
+  itself, and no descriptor can remove it.
+- **Bounded sliders.** Bust, hip and glute ranges are capped at a non-sexualized range,
+  set per age group. Child, toddler and infant groups have no sex-dimorphism body sliders;
+  face sliders only.
+- **Eligibility everywhere.**
+  - Every catalog item and every animation or emote carries age eligibility and content
+    tags.
+  - A child can only wear child-eligible items.
+  - The catalog contains no revealing or adult-themed items at all.
+  - Adult–child interactions are limited to family-appropriate ones.
+- **One validator, shared by client and server.** It clamps sliders and rejects
+  ineligible items on every descriptor before other players ever see it. Any future
+  user-made content goes through the same validator.
+- **No personal data.** Descriptors are not PII, and there is no photo-to-avatar feature.
+  The game as a whole will likely need COPPA / GDPR-K handling for under-13 players; that
+  is outside this system, which collects nothing.
 
 ---
 
@@ -699,7 +792,7 @@ These corrections are computed per character at assembly from the morphed body a
 Everything runs in Node, on the **same assembly code** the game uses (§4.3), and it runs
 on every build in CI.
 
-- **Envelope bodies:**
+- **Envelope bodies, per age group** (§5.6):
   - the neutral body;
   - every macro-slider corner (sex × weight × muscle × age × height extremes);
   - 32 Latin-hypercube samples of all sliders;
@@ -750,6 +843,12 @@ on every build in CI.
 | Budget laptop | Intel UHD 620 / Iris Xe | ~440 GFLOPS (UHD 620) | the CPU is 2–3× slower single-thread than this box's i7-14700K |
 | Low midrange tablet | Mali-G52 MC2 / G57 MC3, Adreno 610 | 90–270 GFLOPS | CPU 5–7× slower (estimate); fill rate goes first; thermal throttling |
 | Midrange tablet | Adreno 660, Apple A13–A14 | 0.7–1.4 TFLOPS | |
+| **User's device: mini PC** | Ryzen 7, iGPU (Radeon 780M if 7x40/8x45-series; Vega 8 if 5000-series; model to confirm) | ~2–8 TFLOPS | far above the budget laptop, so it is a *reference* device with scaled gates (§8.5) |
+| **User's device: Galaxy Z Fold 7** | Snapdragon 8 Elite for Galaxy, Adreno 830, 120 Hz, large high-DPR inner screen | flagship | far above the budget tablet; it is the thermal, high-DPR, touch and foldable-resize test |
+
+The audience (teen girls) skews towards **phones and school Chromebooks**. Phones are
+treated as the tablet tier. Low-end Chromebooks (Celeron or MediaTek) can sit *below* the
+budget laptop, so the lowest quality preset must exist for them.
 
 **Capability floors** (web3dsurvey): WebGL2 on 99 % of Android and 98.4 % of iOS; vertex
 texture units ≥ 16 everywhere; `EXT_color_buffer_float` 99.9 %. `MAX_VERTEX_UNIFORM_VECTORS`
@@ -790,8 +889,9 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
 
 | Item | Budget |
 |---|---|
-| Triangles per character (visible after hiding) | **LOD0 ≤ 3.5k** · LOD1 ≤ 1.4k · LOD2 ≤ 500 (color-baked proxy) · LOD3 ≤ 150 or hidden |
-| LOD0 population | at most the **nearest 12–16** characters, chosen by screen coverage with hysteresis |
+| Triangles per character (visible after hiding) | **LOD0 ≤ 3.5k** · LOD1 ≤ 1.4k · LOD2 ≤ 500 (color-baked proxy) · LOD3 ≤ 150 (countryside distances) or hidden. Child, toddler and infant bodies have smaller budgets, scaled by screen size |
+| LOD0 population | at most the **nearest 12–16** characters, chosen by screen coverage with hysteresis. **Close-up / conversation:** up to 4 "hero" characters keep LOD0 with face bones and fingers |
+| View distance (camera ranges from close city to open countryside) | **city:** many characters near the camera, so the LOD0 cap and LOD1-even-when-near rules carry the load. **countryside:** long sight lines, so most characters are LOD2/LOD3 at 5–10 Hz animation and batched draws. Fade out beyond a configurable draw distance (~250 m) |
 | Total character triangles in view | ≤ 120k on tablets, ≤ 300k on laptops |
 | Bones | LOD0 ≈ 60 (fingers, face, twist; GPU cost only, CPU kept low by §8.4) · LOD1 ≈ 30 · LOD2 ≈ 18 |
 | Influences per vertex | 4 at LOD0, 2 at LOD1+ |
@@ -860,20 +960,40 @@ The test ran headless Chrome with ANGLE-Vulkan on the UHD 770 iGPU. Each charact
 
 ### 8.5 How performance gets measured
 
-- **`Plaza-100`**, a deterministic benchmark scene:
-  - 100 characters with a seeded mix of outfits and body shapes;
-  - a scripted camera path (crowd near, mid and far);
-  - a mix of idle, walk and talk states.
+- **Two deterministic benchmark scenes**, matching the camera range the game needs:
+  - **`Plaza-100`** (city): dense, mostly near and mid characters, with a close-up
+    conversation shot;
+  - **`Meadow-100`** (countryside): long sight lines, mostly far tiers.
+
+  Both use 100 characters with a seeded mix of ages, outfits and body shapes, a scripted
+  camera path, and a mix of idle, walk, talk and family-interaction states.
 - **What it reports:** frame-time p50/p95/p99 and CPU per subsystem (sampler, upload,
   culling, render). Draw calls come from Babylon's engine instrumentation
   (`drawCallsCounter`), never from counting meshes; one earlier project's profiler got
   this wrong. Active vertices and triangles are reported too.
 - **Where it runs:**
   - **Headless Chrome on this box** (ANGLE-Vulkan, GPU and iGPU) for regressions on every
-    change;
-  - **the user's real budget laptop and tablet** through the tailnet URL at every
-    performance gate. The page posts its results to a dev endpoint so numbers land in
-    the repo.
+    change.
+  - **The user's mini PC and Galaxy Z Fold 7**, through the tailnet URL, at every
+    performance gate. The page posts its results to a dev endpoint so numbers land in the
+    repo.
+- **Scaled gates.** Both user devices are several times stronger than the budget targets
+  (the user: "we'll have to scale the expectations accordingly"), so a pass is computed,
+  not eyeballed:
+  - **CPU:** run with Chrome DevTools CPU throttling (CDP
+    `Emulation.setCPUThrottlingRate`), about 4× for the budget laptop and about 6× for the
+    low tablet. The rates are calibrated once from single-thread benchmark ratios. The
+    character system's CPU ms must fit its §8.3 budget *under throttling*.
+  - **GPU:** measure GPU frame time with `EXT_disjoint_timer_query_webgl2`, through
+    Babylon's `EngineInstrumentation.gpuFrameTimeCounter`. Multiply it by a calibrated
+    device ratio, roughly 10× for 780M → UHD 620 and 15–20× for Adreno 830 → Mali-G57 MC2,
+    from published benchmark ratios. Also run at 2× resolution to stress fill rate, the
+    first thing to fail on weak GPUs.
+  - **Thermal:** sustained 10-minute runs on the Fold 7, reporting fps decay.
+  - **Calibration check (recommended, user's call):** the device ratios are estimates. One
+    real budget device would settle them, either a ~$100 Android tablet (Galaxy Tab
+    A9-class) or a one-off cloud real-device session (BrowserStack / LambdaTest offer
+    Galaxy A-series and Chromebooks) at M0 and M5.
 
   A SwiftShader or RTX number is never a pass.
 - **When:** at **M0, before any art exists**, with placeholder characters at the planned
@@ -918,7 +1038,8 @@ vertex for a few microseconds. Decide at M3 by measuring.
 
 ### 9.3 Why it stays small
 
-- **One body topology**: no per-sex or per-body-type garment variants.
+- **One body topology**: no per-sex or per-body-type garment variants. Age groups add a
+  children's catalog (estimated +30–40 % meshes), and teen–elder share one catalog.
 - **Variants are data.** Colors, patterns and names are catalog rows, not meshes.
 - **No per-item textures**: shared atlases plus the recolor mask.
 - **Lazy, cacheable files.** Content-hashed filenames give immutable caching; a service
@@ -944,6 +1065,8 @@ vertex for a few microseconds. Decide at M3 by measuring.
 | Network bloat | Full appearance sent repeatedly | ≈ 150-byte descriptor sent once per player per session; diffs on change |
 | Catalog drift (items that no longer pass) | Rules change after an item is approved | Every item re-validated in CI on every build |
 | Verification that checks nothing | A camera on garment backs; a gate that cannot fail | Every gate has a known-bad fixture; screenshots carry a framing assertion (character bounds fill ≥ X % of the frame) |
+| Engine bundle bloat | Barrel imports (`import { … } from '@babylonjs/core'`) pull in the whole engine. Measured on the template with Babylon 9.30: a **7.2 MB main chunk (1.6 MB gzip)** | Deep imports (`@babylonjs/core/Meshes/mesh`) plus explicit side-effect imports for the features used; an engine-JS budget (≈ 1 MB gzip) checked by the build |
+| Tool failure misreported | Agent shells here have a hard 512 open-file limit; Rollup's `EMFILE` surfaced as "failed to resolve import" (SPEC B1) | `maxParallelFileOps: 64` (SPEC V6); read the real error before "fixing" imports |
 
 ---
 
@@ -957,47 +1080,48 @@ Every milestone ends at three gates:
 
 | M | Deliverable | Gate to pass |
 |---|---|---|
-| **M0** Foundations | Style frames: 2–3 candidate looks (faceting, proportions, face treatment) rendered in Babylon with the shared lighting rig. `Plaza-100` benchmark with **placeholder** characters at the planned budgets, run on the user's real devices. Tool inventory done (§3.2). Pin Blender 5.2.2 LTS and set up the official Blender MCP server (after the user OKs it, §3.5). Decide Babylon 8.56 → 9.x *before* any code depends on it | User picks a style. Placeholder crowd hits ≥ 30 fps on budget hardware, or the budgets get revised *before* any art exists |
-| **M1** Bake-off + base body | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders. Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
-| **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. Bare-bones creator UI (sliders, item pick, 3 colors) | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters |
+| **M0** Foundations | Style frames: 2–3 candidate looks (faceting, proportions, face treatment) rendered in Babylon with the shared lighting rig. `Plaza-100` benchmark with **placeholder** characters at the planned budgets, run on the user's real devices. Tool inventory done (§3.2). ✅ Blender 5.2.2 LTS pinned + official MCP server (§3.5). ✅ Babylon 9.30 | User picks a style against the approved reference. The placeholder crowd passes the *scaled* gates (§8.5) in both `Plaza-100` and `Meadow-100`, or the budgets get revised *before* any art exists |
+| **M1** Bake-off + base body | §3.4 probes. Base body, skeleton, cut-line loops, regions, regressor, ~20 sliders, **plus a child and a toddler from the same topology** (§5.6). Three faces, three garments (tee, jeans, jacket) in walk/sit/arms-up | **User signs off on the rendered 3D body, faces and garments in motion.** Nothing below starts before this |
+| **M2** Assembler v1 | Worker assembly (§4.3), shared material, recolor, one draw call per character. The shared descriptor validator (§5.7). Family inheritance (§5.6). Bare-bones creator UI (sliders, item pick, 3 colors) | Assembly ≤ 30 ms. Descriptor round-trip. Draw calls = characters. The validator rejects every known-bad descriptor fixture |
 | **M3** Garment pipeline | Build step: binding, weight inheritance, hide measurement, LODs, validator, clip-test harness, contact sheets. 20 items across all slots and layers | Every item passes every §7 test on the full envelope × pose suite. The user approves the contact sheets |
-| **M4** Animation | Retargeted clip library, custom sampler, layers, animation LOD, body-shape corrections (§7.3 D10), look-at, foot/hand IK near the camera | Stress suite in motion is clean. The user approves the motion |
+| **M4** Animation | Retargeted clip library, custom sampler, layers, animation LOD, body-shape corrections (§7.3 D10), look-at, foot/hand IK near the camera. Age-specific clips and **cross-age interactions** (carry, hold hands, hug) (§5.6) | Stress suite in motion is clean. The user approves the motion |
 | **M5** Crowd performance | Mesh LODs, skeleton LOD, far LOD, blob shadows, staggered updates, hardware scaling | `Plaza-100` ≥ 30 fps on budget devices, measured on real hardware |
-| **M6** Content scale-up | Item spec → asset tooling; 120 meshes / 300+ catalog entries; thumbnails; CI validation | All items pass; size budgets hold |
+| **M6** Content scale-up | Item spec → asset tooling; 120 meshes / 300+ catalog entries across age groups (teen–elder shared, plus the children's, toddler and infant sets); thumbnails; CI validation | All items pass; size budgets hold |
 | **M7** Game integration | Public API (`createCharacter(descriptor)`, streaming, caching, dispose), docs, example scene | API documented in `SPEC.md §I`; leak test (create/dispose 10k) |
 
 ---
 
 ## 12. Risks and open questions
 
-### Questions for the user (they change scope)
+### Answered by the user (2026-10-12)
 
-1. **Art target.** Is the 16-character low-poly reference approved on 2026-09-06
-   (`~/projects/character-generator/public/low-poly-character-reference.png`) still the
-   look? It is faceted, adult proportions, slightly large heads, readable faces, and
-   varied body types. Note that it is a 2D AI image and promises things a 3D mesh at our
-   budgets may not deliver. The M0 style frames will be compared against it.
-2. **Age range.** Does the life-sim need children and teens? Proportions change
-   drastically. Sims-style games use separate body frames per age group, and a separate
-   frame roughly doubles garment authoring. Default assumption: adults only (young adult →
-   elder) for v1.
-3. **Test devices.** Which budget laptop and tablet does the user own for the M0/M5 gates?
-   Headless Chrome on the RTX 4080 is not a proxy for a Mali GPU.
-4. **Camera.** What is the typical camera distance: third-person close, isometric, or
-   top-down? This sets how many characters are ever at LOD0, which is the biggest single
-   lever in §8.
-5. **Faces.** Painted features with bone expressions, or more geometric faces? (§5.5,
+| # | Question | Answer | Where it landed |
+|---|---|---|---|
+| 1 | Is the 16-character reference (`~/projects/character-generator/public/low-poly-character-reference.png`) still the look? | **Yes** | The M0 style frames are judged against it. It is a 2D AI image, so the 3D version must be proven, not assumed |
+| 2 | Children and teens? | **Yes.** The audience is teen girls, and they will want to make families | §5.6 ages and inheritance; §5.7 content rules; G8, G9 |
+| 3 | Test devices? | **A Ryzen 7 mini PC and a Galaxy Z Fold 7**: "we'll have to scale the expectations accordingly" | §8.1, §8.5 scaled gates |
+| 4 | Camera distance? | **Everything from close-in city scenes to open countryside** | §8.3 view-distance row; the `Plaza-100` and `Meadow-100` scenes |
+| 5 | Install Blender 5.2.2 + the official MCP server? | **Yes**; nohup is fine instead of systemd | Done (§3.2, §3.5) |
+| 6 | Upgrade to Babylon 9? | **Yes** | Done: 9.30.0 (`SPEC.md` §C) |
+
+### Still open
+
+1. **Mini PC model.** Which Ryzen 7 is it? A Radeon 780M (7x40/8x45-series) and a Vega 8
+   (5000-series) differ by about 3–4× in GPU power, which changes the scaling factor.
+2. **Infants.** Should infants be fully customizable characters, or mostly held or carried
+   with a small set of options? This sets the infant clothing and animation scope.
+3. **Phones.** Teens play on phones a lot. Should the creator UI be phone-portrait first,
+   and should phones be a stated performance target? The current assumption is phones =
+   the tablet tier.
+4. **Calibration device.** Buy a ~$100 budget Android tablet, or run one cloud real-device
+   session, to calibrate the scaled gates (§8.5)? Optional, but it replaces estimates
+   with measurements.
+5. **Faces.** Painted features with bone expressions, or more geometric faces? (§5.5;
    decided by the M0 style frames.)
 6. **Feet under shoes.** Confirm the World Forge rule carries over: the foot is always
    kept inside shoes.
 7. **Hands-on time.** Will the user do any manual Blender work, or should every asset be
    agent-authored? This changes the bake-off weighting.
-8. **Tool install.** May I install Blender 5.2.2 LTS (portable, `~/opt/`) and the official
-   Blender Lab MCP server? That means running it as a loopback systemd unit and
-   registering it at project scope (§3.5).
-9. **Babylon 9.** Babylon 9.x is current (the project is on 8.56.2). Upgrading now, before
-   any code exists, is cheapest. Proposed: evaluate in M0 and upgrade unless it breaks the
-   loaders or Havok.
 
 ### Risks
 
@@ -1008,6 +1132,9 @@ Every milestone ends at three gates:
 | JS animation evaluation for 100 skeletons exceeds the CPU budget on tablets | medium | Custom sampler, animation LOD, staggering, shared clip evaluation (§8) |
 | Hundreds of items make compatibility rules explode | medium | Layers give a total order; rules are per *class*, not per item pair (§7.3 D9) |
 | Licence trap in reference assets or AI models | low–medium | Licence column in the §3 inventory; CC0/MIT only for anything that ships |
+| One topology cannot span infant → elder | medium | P1 builds a toddler and a child from the adult topology at M1; fallback: a separate small frame for infant and toddler sharing bone names and face sliders (§5.6) |
+| The family/age scope roughly doubles content (children's catalog, age-specific clips, interactions) | high (certain) | Teen–elder share one catalog; adult garments auto-fit as children's *drafts*; infant scope kept small (open question 2) |
+| A modified client shows other players a forbidden look | medium | The shared validator runs server-side on every descriptor; the assembler always adds the base layer (§5.7) |
 
 ---
 

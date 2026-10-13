@@ -6,7 +6,7 @@ old one): `~/projects/claude-hub/SDD.md`.
 
 ## §G GOAL
 
-modular low-poly character system for web 3D games (sandbox MMO life-sim): body+face sliders, 100s of mix-and-match items × ≤3 recolor channels each, ≤100 unique animated chars on screen @ ≥30 fps on budget laptop / midrange tablet. reasoning, research, sources: `PLAN.md`.
+modular low-poly character system for web 3D games (sandbox MMO life-sim, audience: teen girls building families): every age infant→elder, body+face sliders, children inherit parents' looks, 100s of mix-and-match items × ≤3 recolor channels each, ≤100 unique animated chars on screen @ ≥30 fps on budget laptop / midrange tablet. reasoning, research, sources: `PLAN.md`.
 
 ## §C CONSTRAINTS
 
@@ -27,11 +27,20 @@ modular low-poly character system for web 3D games (sandbox MMO life-sim): body+
 - carried user rules: covered body ⊥ drawn, cuts clean (authored bands); shoes worn OVER foot, foot kept; hands can grip (finger bones).
 - quality gate: ⊥ catalog / UI / scale work before user signs off rendered 3D body + faces + garments in motion (M1, §T.5).
 - one lighting definition shared by game, creator & every screenshot harness.
+- art target = 16-char faceted low-poly reference `~/projects/character-generator/public/low-poly-character-reference.png` (approved 2026-09-06, re-confirmed 2026-10-12). 2D AI image ∴ 3D must be proven against it, ⊥ assumed.
+- ages: infant 0–1 · toddler 1–3 · child 4–12 · teen→elder 13–90 (teen–elder share one garment catalog). one topology + one skeleton across ages = goal, proven in M1 P1 (child + toddler from adult topology); fallback small frame for infant/toddler w/ same bone names + face sliders.
+- identity sliders stored as deviation from age-mean shape → aging keeps identity; child = lerp(parents) + seeded noise.
+- content rules (teen audience): non-removable base layer added by assembler; body sliders capped to non-sexualized ranges per age group; child/toddler/infant: no sex-dimorphism body sliders; ∀ item & animation carry age eligibility + content tags; one descriptor validator shared client+server. ⊥ revealing/adult-themed catalog items. ⊥ PII / photo-to-avatar.
+- user test devices: Ryzen 7 mini PC (model TBC) + Galaxy Z Fold 7 (Adreno 830). both ≫ budget targets ∴ perf gates = SCALED: CPU via CDP `Emulation.setCPUThrottlingRate` (~4× laptop, ~6× tablet), GPU ms (`EXT_disjoint_timer_query_webgl2`) × calibrated device ratio, Fold 7 10-min thermal run.
+- camera: close city scenes → open countryside ∴ bench scenes `Plaza-100` (city, dense near) + `Meadow-100` (countryside, far tiers); LOD3 + draw-distance fade.
+- Blender: apt 5.0.1 (`/usr/bin/blender`) for quick batch; pinned 5.2.2 LTS `~/opt/blender-5.2.2-linux-x64/blender` for the pipeline + MCP. MCP server runs under nohup (user OK 2026-10-12, ⊥ systemd needed) → ⊥ survives reboot; `tools/blender-mcp.sh start`.
 
 ## §I INTERFACES
 
 - url: `GET /low-poly-character-system/` → the app, through claude-hub
 - `README.md` H1 → the project's title, ¶1 → its one-sentence description
+- MCP: `.mcp.json` server `blender` = `uvx --from git+https://projects.blender.org/lab/blender_mcp.git@v1.0.3#subdirectory=mcp blender-mcp`, env `BLENDER_MCP_HOST=127.0.0.1` `BLENDER_MCP_PORT=9876` `BLENDER_PATH`. backend: headless Blender 5.2.2 `--command blender_mcp` on `127.0.0.1:9876` (no auth ∴ loopback only). raw socket: null-terminated JSON `{"type":"execute","code":…,"strict_json":true}`.
+- `tools/blender-mcp.sh start|stop|status|restart` → manages that backend; log `~/.local/state/blender-mcp/blender-mcp.log`.
 
 ## §R RESEARCH
 
@@ -67,7 +76,7 @@ id|status|task|cites
 T1|x|agree §G w/ user; rewrite §G + `README.md` H1/¶1 to match|V4
 T2|.|first feature. add §I rows for surface it adds, §V for rules it must hold|-
 T3|x|research + plan → `PLAN.md` (tool discovery, perf budgets, modularity, clipping); seeds §G §C §R|-
-T4|~|M0 (Babylon 9 ✓ 2026-10-12): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
+T4|~|M0 (Babylon 9 ✓, Blender 5.2.2 + MCP ✓ 2026-10-12): style frames (2–3 looks, shared lighting rig); `Plaza-100` placeholder bench on user's real devices; pin Blender 5.2.2 + Blender MCP (needs user OK); Babylon 9 decision|PLAN §11
 T5|.|M1: bake-off PLAN §3.4 P1–P8 + base body; user signs off rendered 3D body/faces/garments in motion|PLAN §3.4
 T6|.|M2: worker assembler (morph bake → skeleton fit → item fit → hide → merge), shared material, recolor, minimal creator|PLAN §4.3
 T7|.|M3: garment build pipeline + clip-test harness; every gate ships w/ a known-bad fixture|PLAN §7.5
@@ -75,6 +84,10 @@ T8|.|M4: custom animation sampler + shared bone texture, layers, D10 body-shape 
 T9|.|M5: crowd perf — LODs, far-tier batching, blob shadows, real-device gate|PLAN §8
 T10|.|M6: content scale-up → ~120 meshes / 300+ catalog entries|PLAN §9
 T11|.|M7: game-facing API (`createCharacter(descriptor)`), streaming, cache, dispose leak test|-
+T12|x|fold user answers (ages/families, teen content rules, devices + scaled gates, camera range) into PLAN v1.1 + §G §C|-
+T13|.|M1 add-on: P1 builds child + toddler from the adult topology; decide one-topology vs small frame|PLAN §5.6
+T14|.|M2 add-on: shared descriptor validator (§5.7 rules) + family inheritance (lerp + seeded noise, OKLab skin)|PLAN §5.6 §5.7
+T15|.|M0 add-on: `Meadow-100` countryside bench + scaled-gate harness (CDP throttling, GPU timer × device ratio)|PLAN §8.5
 
 ## §B BUGS
 
